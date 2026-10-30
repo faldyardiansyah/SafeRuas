@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../../utils/app_colors.dart';
 import '../controllers/splash_controller.dart';
@@ -75,7 +76,7 @@ class SplashView extends GetView<SplashController> {
                               ],
                             ),
                             child: Image.asset(
-                              'assets/images/logo.png',
+                              'assets/images/logo.jpeg',
                               fit: BoxFit.contain,
                               errorBuilder: (context, error, stackTrace) {
                                 return const Icon(
@@ -201,7 +202,7 @@ class SplashView extends GetView<SplashController> {
                                         key: ValueKey(
                                           controller.loadingMessage.value,
                                         ),
-                                        style: const TextStyle(
+                                        style: GoogleFonts.plusJakartaSans(
                                           fontSize: 11,
                                           fontWeight: FontWeight.w600,
                                           color: AppColors.textPrimary,
@@ -226,7 +227,7 @@ class SplashView extends GetView<SplashController> {
                           Text(
                             '${controller.currentStep.value + 1}'
                             '/${controller.loadingSteps.length}',
-                            style: const TextStyle(
+                            style: GoogleFonts.plusJakartaSans(
                               fontSize: 10,
                               fontWeight: FontWeight.w700,
                               color: AppColors.tealDark,

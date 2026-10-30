@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:lottie/lottie.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../../utils/app_colors.dart';
 import '../controllers/onboarding_controller.dart';
@@ -35,9 +36,9 @@ class OnboardingView extends GetView<OnboardingController> {
                     ),
                   ),
                   const SizedBox(width: 10),
-                  const Text(
-                    'JagaJalan',
-                    style: TextStyle(
+                  Text(
+                    'SafeRuas',
+                    style: GoogleFonts.plusJakartaSans(
                       color: AppColors.onboardingHeading,
                       fontSize: 17,
                       fontWeight: FontWeight.w800,
@@ -47,9 +48,9 @@ class OnboardingView extends GetView<OnboardingController> {
                   const Spacer(),
                   TextButton(
                     onPressed: controller.skipOnboarding,
-                    child: const Text(
+                    child: Text(
                       'Lewati',
-                      style: TextStyle(
+                      style: GoogleFonts.plusJakartaSans(
                         color: AppColors.onboardingMuted,
                         fontWeight: FontWeight.w600,
                         fontSize: 13,
@@ -160,7 +161,7 @@ class OnboardingView extends GetView<OnboardingController> {
                                     ),
                                     child: Text(
                                       page['eyebrow']!,
-                                      style: const TextStyle(
+                                      style: GoogleFonts.plusJakartaSans(
                                         fontSize: 10,
                                         letterSpacing: 1.0,
                                         fontWeight: FontWeight.w800,
@@ -176,7 +177,7 @@ class OnboardingView extends GetView<OnboardingController> {
                                 Text(
                                   page['title']!,
                                   textAlign: TextAlign.left,
-                                  style: const TextStyle(
+                                  style: GoogleFonts.plusJakartaSans(
                                     fontSize: 29,
                                     height: 1.2,
                                     letterSpacing: -0.8,
@@ -191,7 +192,7 @@ class OnboardingView extends GetView<OnboardingController> {
                                 Text(
                                   page['description']!,
                                   textAlign: TextAlign.left,
-                                  style: const TextStyle(
+                                  style: GoogleFonts.plusJakartaSans(
                                     fontSize: 14,
                                     height: 1.7,
                                     color: AppColors.onboardingMuted,
@@ -240,7 +241,7 @@ class OnboardingView extends GetView<OnboardingController> {
                       height: 7,
                       decoration: BoxDecoration(
                         color: active
-                            ? AppColors.onboardingPrimary
+                            ? AppColors.info
                             : AppColors.onboardingIndicatorInactive,
                         borderRadius: BorderRadius.circular(20),
                       ),
@@ -266,7 +267,7 @@ class OnboardingView extends GetView<OnboardingController> {
                   return ElevatedButton(
                     onPressed: controller.nextPage,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.onboardingPrimary,
+                      backgroundColor: AppColors.info,
                       foregroundColor: AppColors.textWhite,
                       elevation: 0,
                       shape: RoundedRectangleBorder(
@@ -278,7 +279,7 @@ class OnboardingView extends GetView<OnboardingController> {
                       children: [
                         Text(
                           isLastPage ? 'Mulai Sekarang' : 'Lanjutkan',
-                          style: const TextStyle(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 15,
                             fontWeight: FontWeight.w700,
                           ),
@@ -323,7 +324,7 @@ class _FeatureChip extends StatelessWidget {
           const SizedBox(width: 6),
           Text(
             label,
-            style: const TextStyle(
+            style: GoogleFonts.plusJakartaSans(
               fontSize: 11,
               fontWeight: FontWeight.w600,
               color: AppColors.onboardingSecondaryText,

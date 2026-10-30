@@ -13,7 +13,7 @@ class OnboardingController extends GetxController {
       'description':
           'Kenali lubang, retakan, dan jalan gelap melalui '
           'deteksi AI serta informasi dari warga.',
-      'animation': 'assets/animations/road_safety.json',
+      'animation': 'assets/lotties/maps.json',
       'label1': 'Deteksi AI',
       'label2': 'Info bahaya',
     },
@@ -23,7 +23,7 @@ class OnboardingController extends GetxController {
       'description':
           'Bandingkan rute berdasarkan kondisi jalan dan '
           'titik bahaya untuk membantu menentukan perjalanan.',
-      'animation': 'assets/animations/safe_route.json',
+      'animation': 'assets/lotties/onboarding1.json',
       'label1': 'Rute aman',
       'label2': 'Peta interaktif',
     },
@@ -33,7 +33,7 @@ class OnboardingController extends GetxController {
       'description':
           'Kirim laporan kerusakan, konfirmasi kondisi jalan, '
           'dan pantau perkembangannya sampai selesai.',
-      'animation': 'assets/animations/road_report.json',
+      'animation': 'assets/lotties/road_maintenance.json',
       'label1': 'Lapor jalan',
       'label2': 'Pantau status',
     },

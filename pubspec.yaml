@@ -1,6 +1,6 @@
 name: saferuas
 description: "A new Flutter project."
-# The following line prevents the package from being accidentally published to
+# The following line prevents the package from accidentally being published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 
@@ -13,9 +13,8 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # Read more about Android versioning at https://developer.android.com/studio/publish/versioning
 # In iOS, build-name is used as CFBundleShortVersionString while build-number is used as CFBundleVersion.
 # Read more about iOS versioning at
-# https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
-# In Windows, build-name is used as the major, minor, and patch parts
-# of the product and file versions while build-number is used as the build suffix.
+# https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/InfoPlistKeyReference.html
+# In Windows, build-name is used as the major, minor, and patch parts of the product and build-number used as the build suffix.
 version: 1.0.0+1
 
 environment:
@@ -24,9 +23,8 @@ environment:
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
 # consider running `flutter pub upgrade --major-versions`. Alternatively,
-# dependencies can be manually updated by changing the version numbers below to
-# the latest version available on pub.dev. To see which dependencies have newer
-# versions available, run `flutter pub outdated`.
+# dependencies can be manually updated by changing the version numbers below to the latest versions available on pub.dev.
+# In particular, consider running `flutter pub outdated`.
 dependencies:
   flutter:
     sdk: flutter
@@ -37,16 +35,17 @@ dependencies:
   get: ^4.7.3
   lottie: ^3.7.0
   flutter_animate: ^4.5.2
+  google_fonts: ^6.3.2
+  awesome_snackbar_content: ^0.1.5
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
 
   # The "flutter_lints" package below contains a set of recommended lints to
-  # encourage good coding practices. The lint set provided by the package is
-  # activated in the `analysis_options.yaml` file located at the root of your
-  # package. See that file for information about deactivating specific lint
-  # rules and activating additional ones.
+  # encourage good coding practices. The lint set is located in the
+  # analysis_options.yaml file located at the root of your package.
+  # See that file for information about deactivating or adjusting these rules.
   flutter_lints: ^6.0.0
 
 # For information on the generic Dart part of this file, see the
@@ -56,11 +55,12 @@ dev_dependencies:
 flutter:
 
   # The following line ensures that the Material Icons font is
-  # included with your application, so that you can use the icons in
-  # the material Icons class.
+  # included with your application, so that it can be used in the app.
   uses-material-design: true
+
   assets:
-    - assets/
+    - assets/lotties/
+    - assets/images/
 
   # To add assets to your application, add an assets section, like this:
   # assets:
@@ -70,14 +70,15 @@ flutter:
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
 
-  # For details regarding adding assets from package dependencies, see
+  # For details regarding assets in packages, see
   # https://flutter.dev/to/asset-from-package
 
   # To add custom fonts to your application, add a fonts section here,
   # in this "flutter" section. Each entry in this list should have a
-  # "family" key with the font family name, and a "fonts" key with a
-  # list giving the asset and other descriptors for the font. For
-  # example:
+  # "family" key and a "fonts" key. The family determines the name of the
+  # font, which you use in the textStyle property of a TextStyle widget.
+  # The fonts property determines the files that contain the font.
+  # For example:
   # fonts:
   #   - family: Schyler
   #     fonts:
@@ -90,5 +91,5 @@ flutter:
   #       - asset: fonts/TrajanPro_Bold.ttf
   #         weight: 700
   #
-  # For details regarding fonts from package dependencies,
-  # see https://flutter.dev/to/font-from-package
+  # For details regarding fonts from packages, see
+  # https://flutter.dev/to/font-from-package
