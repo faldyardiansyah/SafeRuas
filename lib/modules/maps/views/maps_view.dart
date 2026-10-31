@@ -23,7 +23,11 @@ class MapsView extends GetView<MapsController> {
             top: MediaQuery.of(context).padding.top + 12,
             left: 0,
             right: 0,
-            child: _buildSearchPanel(),
+            child: Obx(
+              () => controller.isNavigating.value
+                  ? _buildNavigationHeader()
+                  : _buildSearchPanel(),
+            ),
           ),
           Positioned(
             right: 18,
@@ -42,8 +46,6 @@ class MapsView extends GetView<MapsController> {
   }
 
   Widget _buildMap() {
-    final isNight = controller.isNightMode.value;
-
     return FlutterMap(
       mapController: controller.mapController,
       options: MapOptions(
@@ -64,10 +66,7 @@ class MapsView extends GetView<MapsController> {
       ),
       children: [
         TileLayer(
-          urlTemplate: isNight
-              ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-              : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-          subdomains: isNight ? const ['a', 'b', 'c', 'd'] : const [],
+          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
           userAgentPackageName: 'com.saferuas.app',
         ),
         PolylineLayer(
@@ -183,23 +182,7 @@ class MapsView extends GetView<MapsController> {
                   ],
                 ),
               ),
-              Obx(
-                () => IconButton(
-                  onPressed: controller.toggleMapMode,
-                  style: IconButton.styleFrom(
-                    backgroundColor: const Color(0xFFF0F5F9),
-                  ),
-                  icon: Icon(
-                    controller.isNightMode.value
-                        ? Icons.dark_mode_rounded
-                        : Icons.light_mode_rounded,
-                    color: controller.isNightMode.value
-                        ? AppColors.primaryDark
-                        : AppColors.warning,
-                  ),
-                  tooltip: 'Ganti mode peta',
-                ),
-              ),
+              _buildWibClock(),
             ],
           ),
           const SizedBox(height: 8),
@@ -311,6 +294,55 @@ class MapsView extends GetView<MapsController> {
     );
   }
 
+  Widget _buildWibClock() {
+    return Obx(
+      () => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF0F5F9),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text(
+              controller.currentWibTime.value,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  controller.isNightMode.value
+                      ? Icons.nightlight_round
+                      : Icons.wb_sunny_rounded,
+                  size: 11,
+                  color: controller.isNightMode.value
+                      ? AppColors.primaryDark
+                      : AppColors.warning,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  controller.timePeriod,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 9,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildLocationInput() {
     return InkWell(
       onTap: controller.getCurrentLocation,
@@ -368,26 +400,103 @@ class MapsView extends GetView<MapsController> {
     );
   }
 
+  Widget _buildNavigationHeader() {
+    return Obx(
+      () => Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.all(15),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.13),
+              blurRadius: 18,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 45,
+              height: 45,
+              decoration: BoxDecoration(
+                color: AppColors.primaryDark,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: const Icon(
+                Icons.navigation_rounded,
+                color: Colors.white,
+                size: 26,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    controller.currentInstruction,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Dalam ${controller.nextStepDistanceText}',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.primaryDark,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            const Icon(
+              Icons.navigation_outlined,
+              color: AppColors.primaryDark,
+              size: 22,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildMapControls() {
-    return Column(
-      children: [
-        _mapButton(
-          icon: Icons.my_location_rounded,
-          onTap: controller.getCurrentLocation,
-        ),
-        const SizedBox(height: 9),
-        _mapButton(icon: Icons.add_rounded, onTap: () => controller.zoomMap(1)),
-        const SizedBox(height: 7),
-        _mapButton(
-          icon: Icons.remove_rounded,
-          onTap: () => controller.zoomMap(-1),
-        ),
-        const SizedBox(height: 9),
-        _mapButton(
-          icon: Icons.layers_outlined,
-          onTap: controller.toggleMapMode,
-        ),
-      ],
+    return Obx(
+      () => Column(
+        children: [
+          _mapButton(
+            icon: Icons.my_location_rounded,
+            onTap: controller.isNavigating.value
+                ? () {
+                    final location = controller.currentLocation.value;
+                    if (location != null) {
+                      controller.mapController.move(location, 17);
+                    }
+                  }
+                : controller.getCurrentLocation,
+          ),
+          const SizedBox(height: 9),
+          _mapButton(
+            icon: Icons.add_rounded,
+            onTap: () => controller.zoomMap(1),
+          ),
+          const SizedBox(height: 7),
+          _mapButton(
+            icon: Icons.remove_rounded,
+            onTap: () => controller.zoomMap(-1),
+          ),
+        ],
+      ),
     );
   }
 
@@ -410,6 +519,10 @@ class MapsView extends GetView<MapsController> {
 
   Widget _buildBottomPanel() {
     return Obx(() {
+      if (controller.isNavigating.value) {
+        return _buildActiveNavigationPanel();
+      }
+
       final hasRoutes = controller.routes.isNotEmpty;
 
       return Container(
@@ -450,7 +563,9 @@ class MapsView extends GetView<MapsController> {
                     ),
                   ),
                   Text(
-                    controller.isNightMode.value ? 'Mode malam' : 'Mode siang',
+                    controller.isNightMode.value
+                        ? 'Penilaian malam'
+                        : 'Penilaian siang',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 9,
                       fontWeight: FontWeight.w700,
@@ -480,12 +595,31 @@ class MapsView extends GetView<MapsController> {
                 const SizedBox(height: 7),
                 Text(
                   controller.hasHazardData.value
-                      ? 'Penilaian berdasarkan laporan bahaya yang tersedia. Rute berisiko lebih rendah bukan jaminan bebas bahaya.'
-                      : 'Belum ada laporan bahaya yang terhubung. Warna rute belum menunjukkan tingkat keamanan jalan.',
+                      ? 'Risiko dihitung berdasarkan kerusakan jalan dan penerangan.'
+                      : 'Belum ada data laporan bahaya yang terhubung.',
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 8,
-                    height: 1.4,
+                    height: 1.3,
                     color: AppColors.textMuted,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: controller.isLoadingRoute.value
+                        ? null
+                        : controller.startNavigation,
+                    icon: const Icon(Icons.navigation_rounded),
+                    label: const Text('Mulai Navigasi'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryDark,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 13),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(13),
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -494,6 +628,134 @@ class MapsView extends GetView<MapsController> {
         ),
       );
     });
+  }
+
+  Widget _buildActiveNavigationPanel() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.14),
+            blurRadius: 20,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.route_rounded, color: AppColors.teal, size: 20),
+              const SizedBox(width: 7),
+              Expanded(
+                child: Text(
+                  'Navigasi sedang berjalan',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE7F7EF),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  'GPS AKTIF',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 8,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.green.shade700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _navigationInfo(
+                  'Jarak ke tujuan',
+                  controller.destinationDistanceText,
+                  Icons.location_on_outlined,
+                ),
+              ),
+              Container(width: 1, height: 40, color: AppColors.divider),
+              Expanded(
+                child: _navigationInfo(
+                  'Tujuan',
+                  controller.destinationName.value,
+                  Icons.flag_outlined,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: controller.stopNavigation,
+              icon: const Icon(Icons.stop_circle_outlined),
+              label: const Text('Selesai Navigasi'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.dangerRed,
+                side: const BorderSide(color: AppColors.dangerRed),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(13),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _navigationInfo(String label, String value, IconData icon) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: Row(
+        children: [
+          Icon(icon, color: AppColors.primaryDark, size: 20),
+          const SizedBox(width: 7),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 8,
+                    color: AppColors.textMuted,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildRouteOption(int index) {

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:math' as math;
 
@@ -8,10 +9,28 @@ import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 
+class NavigationStep {
+  final String instruction;
+  final double distance;
+  final LatLng location;
+  final String maneuverType;
+  final String modifier;
+
+  NavigationStep({
+    required this.instruction,
+    required this.distance,
+    required this.location,
+    required this.maneuverType,
+    required this.modifier,
+  });
+}
+
 class MapsController extends GetxController {
   final mapController = MapController();
 
   final isNightMode = false.obs;
+  final currentWibTime = ''.obs;
+
   final isLoadingLocation = false.obs;
   final isSearching = false.obs;
   final isLoadingRoute = false.obs;
@@ -34,12 +53,74 @@ class MapsController extends GetxController {
   final routeRiskLabels = <String>[].obs;
   final hasHazardData = false.obs;
 
+  // Navigasi aktif
+  final isNavigating = false.obs;
+  final currentStepIndex = 0.obs;
+  final navigationSteps = <NavigationStep>[].obs;
+  final distanceToNextStep = 0.0.obs;
+  final distanceToDestination = 0.0.obs;
+
+  StreamSubscription<Position>? _positionSubscription;
+  Timer? _clockTimer;
+
+  final List<List<NavigationStep>> _routeNavigationSteps = [];
+
   bool mapReady = false;
+  bool _isUpdatingProgress = false;
+
+  String get timePeriod => isNightMode.value ? 'Malam hari' : 'Siang hari';
+
+  NavigationStep? get currentNavigationStep {
+    if (navigationSteps.isEmpty ||
+        currentStepIndex.value >= navigationSteps.length) {
+      return null;
+    }
+
+    return navigationSteps[currentStepIndex.value];
+  }
+
+  String get currentInstruction {
+    return currentNavigationStep?.instruction ??
+        'Lanjutkan perjalanan menuju tujuan';
+  }
+
+  String get nextStepDistanceText {
+    return _formatDistance(distanceToNextStep.value);
+  }
+
+  String get destinationDistanceText {
+    return _formatDistance(distanceToDestination.value);
+  }
 
   @override
   void onInit() {
     super.onInit();
+
+    updateWibTime();
+
+    _clockTimer = Timer.periodic(
+      const Duration(seconds: 1),
+      (_) => updateWibTime(),
+    );
+
     getCurrentLocation();
+  }
+
+  void updateWibTime() {
+    final now = DateTime.now().toUtc().add(const Duration(hours: 7));
+
+    currentWibTime.value =
+        '${now.hour.toString().padLeft(2, '0')}:'
+        '${now.minute.toString().padLeft(2, '0')}:'
+        '${now.second.toString().padLeft(2, '0')} WIB';
+
+    final hour = now.hour;
+    final night = hour >= 18 || hour < 6;
+
+    if (isNightMode.value != night) {
+      isNightMode.value = night;
+      calculateRouteRisks();
+    }
   }
 
   void onMapReady() {
@@ -50,36 +131,41 @@ class MapsController extends GetxController {
     }
   }
 
+  Future<bool> _checkLocationPermission() async {
+    final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+
+    if (!serviceEnabled) {
+      Get.snackbar(
+        'Lokasi tidak aktif',
+        'Aktifkan GPS perangkat terlebih dahulu.',
+      );
+      return false;
+    }
+
+    LocationPermission permission = await Geolocator.checkPermission();
+
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+    }
+
+    if (permission == LocationPermission.denied ||
+        permission == LocationPermission.deniedForever) {
+      Get.snackbar(
+        'Izin lokasi diperlukan',
+        'Izinkan akses lokasi agar Saferuas dapat digunakan.',
+      );
+      return false;
+    }
+
+    return true;
+  }
+
   Future<void> getCurrentLocation() async {
     try {
       isLoadingLocation.value = true;
 
-      final serviceEnabled =
-          await Geolocator.isLocationServiceEnabled();
-
-      if (!serviceEnabled) {
-        Get.snackbar(
-          'Lokasi tidak aktif',
-          'Aktifkan GPS perangkat untuk mendapatkan lokasi.',
-        );
-        return;
-      }
-
-      LocationPermission permission =
-          await Geolocator.checkPermission();
-
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-      }
-
-      if (permission == LocationPermission.denied ||
-          permission == LocationPermission.deniedForever) {
-        Get.snackbar(
-          'Izin lokasi diperlukan',
-          'Izinkan akses lokasi agar Saferuas dapat menunjukkan posisi kamu.',
-        );
-        return;
-      }
+      final permitted = await _checkLocationPermission();
+      if (!permitted) return;
 
       final position = await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(
@@ -87,25 +173,18 @@ class MapsController extends GetxController {
         ),
       );
 
-      final location = LatLng(
-        position.latitude,
-        position.longitude,
-      );
-
+      final location = LatLng(position.latitude, position.longitude);
       currentLocation.value = location;
 
       if (mapReady) {
         mapController.move(location, 15);
       }
 
-      if (destination.value != null) {
+      if (destination.value != null && !isNavigating.value) {
         await getRoutes();
       }
     } catch (e) {
-      Get.snackbar(
-        'Gagal mengambil lokasi',
-        e.toString(),
-      );
+      Get.snackbar('Gagal mengambil lokasi', e.toString());
     } finally {
       isLoadingLocation.value = false;
     }
@@ -118,16 +197,12 @@ class MapsController extends GetxController {
       isSearching.value = true;
       searchResults.clear();
 
-      final uri = Uri.https(
-        'nominatim.openstreetmap.org',
-        '/search',
-        {
-          'q': query.trim(),
-          'format': 'jsonv2',
-          'limit': '5',
-          'countrycodes': 'id',
-        },
-      );
+      final uri = Uri.https('nominatim.openstreetmap.org', '/search', {
+        'q': query.trim(),
+        'format': 'jsonv2',
+        'limit': '5',
+        'countrycodes': 'id',
+      });
 
       final response = await http.get(
         uri,
@@ -154,24 +229,20 @@ class MapsController extends GetxController {
       );
 
       if (searchResults.isEmpty) {
-        Get.snackbar(
-          'Tidak ditemukan',
-          'Lokasi yang dicari tidak ditemukan.',
-        );
+        Get.snackbar('Tidak ditemukan', 'Lokasi yang dicari tidak ditemukan.');
       }
     } catch (e) {
-      Get.snackbar(
-        'Pencarian gagal',
-        e.toString(),
-      );
+      Get.snackbar('Pencarian gagal', e.toString());
     } finally {
       isSearching.value = false;
     }
   }
 
-  Future<void> selectDestination(
-    Map<String, dynamic> item,
-  ) async {
+  Future<void> selectDestination(Map<String, dynamic> item) async {
+    if (isNavigating.value) {
+      stopNavigation();
+    }
+
     destination.value = LatLng(
       (item['lat'] as num).toDouble(),
       (item['lon'] as num).toDouble(),
@@ -205,6 +276,7 @@ class MapsController extends GetxController {
       routeDurations.clear();
       routeRiskScores.clear();
       routeRiskLabels.clear();
+      _routeNavigationSteps.clear();
 
       final coordinates =
           '${origin.longitude},${origin.latitude};'
@@ -215,7 +287,8 @@ class MapsController extends GetxController {
         '$coordinates'
         '?alternatives=true'
         '&overview=full'
-        '&geometries=geojson',
+        '&geometries=geojson'
+        '&steps=true',
       );
 
       final response = await http.get(uri);
@@ -226,16 +299,14 @@ class MapsController extends GetxController {
 
       final data = jsonDecode(response.body);
 
-      if (data['code'] != 'Ok' ||
-          (data['routes'] as List).isEmpty) {
+      if (data['code'] != 'Ok' || (data['routes'] as List).isEmpty) {
         throw Exception('Rute perjalanan tidak ditemukan.');
       }
 
       final List routeData = data['routes'];
 
       for (final route in routeData) {
-        final coordinates =
-            route['geometry']['coordinates'] as List;
+        final coordinates = route['geometry']['coordinates'] as List;
 
         final points = coordinates.map<LatLng>((coordinate) {
           return LatLng(
@@ -246,19 +317,47 @@ class MapsController extends GetxController {
 
         routes.add(points);
 
-        final distance =
-            (route['distance'] as num).toDouble() / 1000;
+        final distance = (route['distance'] as num).toDouble() / 1000;
+        final duration = (route['duration'] as num).toDouble() / 60;
 
-        final duration =
-            (route['duration'] as num).toDouble() / 60;
+        routeDistances.add('${distance.toStringAsFixed(1)} km');
+        routeDurations.add('${duration.round()} menit');
 
-        routeDistances.add(
-          '${distance.toStringAsFixed(1)} km',
-        );
+        final steps = <NavigationStep>[];
+        final legs = route['legs'] as List? ?? [];
 
-        routeDurations.add(
-          '${duration.round()} menit',
-        );
+        for (final leg in legs) {
+          final legSteps = leg['steps'] as List? ?? [];
+
+          for (final step in legSteps) {
+            final maneuver = step['maneuver'] as Map<String, dynamic>?;
+
+            if (maneuver == null) continue;
+
+            final location = maneuver['location'] as List?;
+            if (location == null || location.length < 2) continue;
+
+            final type = (maneuver['type'] ?? '').toString();
+            final modifier = (maneuver['modifier'] ?? '').toString();
+            final name = (step['name'] ?? '').toString();
+            final stepDistance = (step['distance'] as num?)?.toDouble() ?? 0;
+
+            steps.add(
+              NavigationStep(
+                instruction: _createInstruction(type, modifier, name),
+                distance: stepDistance,
+                location: LatLng(
+                  (location[1] as num).toDouble(),
+                  (location[0] as num).toDouble(),
+                ),
+                maneuverType: type,
+                modifier: modifier,
+              ),
+            );
+          }
+        }
+
+        _routeNavigationSteps.add(steps);
       }
 
       selectedRoute.value = 0;
@@ -271,82 +370,231 @@ class MapsController extends GetxController {
       routeDurations.clear();
       routeRiskScores.clear();
       routeRiskLabels.clear();
+      _routeNavigationSteps.clear();
 
-      Get.snackbar(
-        'Rute gagal dimuat',
-        e.toString(),
-      );
+      Get.snackbar('Rute gagal dimuat', e.toString());
     } finally {
       isLoadingRoute.value = false;
     }
+  }
+
+  String _createInstruction(String type, String modifier, String roadName) {
+    final road = roadName.trim().isEmpty ? 'jalan berikutnya' : roadName;
+
+    switch (type) {
+      case 'depart':
+        return 'Mulai perjalanan menuju $road';
+
+      case 'arrive':
+        return 'Anda akan tiba di tujuan';
+
+      case 'turn':
+        return '${_turnText(modifier)} ke $road';
+
+      case 'continue':
+        return 'Terus lurus menuju $road';
+
+      case 'new name':
+        return 'Lanjutkan perjalanan menuju $road';
+
+      case 'merge':
+        return 'Bergabung ke $road';
+
+      case 'on ramp':
+        return 'Masuk ke jalur $road';
+
+      case 'off ramp':
+        return 'Keluar menuju $road';
+
+      case 'fork':
+        return '${_turnText(modifier)} di persimpangan menuju $road';
+
+      case 'roundabout':
+      case 'rotary':
+        return 'Masuki bundaran menuju $road';
+
+      case 'end of road':
+        return 'Di ujung jalan, ${_turnText(modifier)}';
+
+      case 'notification':
+        return 'Perhatikan kondisi jalan di depan';
+
+      default:
+        return 'Lanjutkan perjalanan menuju $road';
+    }
+  }
+
+  String _turnText(String modifier) {
+    switch (modifier) {
+      case 'left':
+        return 'Belok kiri';
+      case 'right':
+        return 'Belok kanan';
+      case 'slight left':
+        return 'Belok sedikit ke kiri';
+      case 'slight right':
+        return 'Belok sedikit ke kanan';
+      case 'sharp left':
+        return 'Belok tajam ke kiri';
+      case 'sharp right':
+        return 'Belok tajam ke kanan';
+      case 'uturn':
+        return 'Putar balik';
+      case 'straight':
+        return 'Terus lurus';
+      default:
+        return 'Ikuti arah jalan';
+    }
+  }
+
+  String _normalizeHazardType(Map<String, dynamic> hazard) {
+    return (hazard['type'] ?? '')
+        .toString()
+        .toLowerCase()
+        .trim()
+        .replaceAll(' ', '_')
+        .replaceAll('-', '_');
+  }
+
+  bool _isRoadDamage(String type) {
+    const types = {
+      'lubang',
+      'pothole',
+      'jalan_rusak',
+      'kerusakan_jalan',
+      'retak',
+      'retak_jalan',
+      'cracking',
+      'alligator_cracking',
+      'edge_cracking',
+      'longitudinal_cracking',
+      'transverse_cracking',
+      'rutting',
+      'alur',
+      'genangan',
+      'banjir',
+    };
+
+    return types.contains(type);
+  }
+
+  bool _isLightingProblem(String type) {
+    const types = {
+      'lampu_mati',
+      'lampu_jalan_mati',
+      'penerangan_mati',
+      'minim_penerangan',
+      'jalan_gelap',
+      'kurang_penerangan',
+    };
+
+    return types.contains(type);
+  }
+
+  double _roadDamageWeight(Map<String, dynamic> hazard) {
+    final type = _normalizeHazardType(hazard);
+
+    final severity = (hazard['severity'] ?? '').toString().toLowerCase().trim();
+
+    if (type == 'lubang' || type == 'pothole') {
+      if (severity == 'parah' || severity == 'berat') return 5;
+      if (severity == 'sedang') return 3;
+      return 2;
+    }
+
+    if (type == 'jalan_rusak' || type == 'kerusakan_jalan') {
+      if (severity == 'parah' || severity == 'berat') return 5;
+      return 3;
+    }
+
+    if (type == 'genangan' || type == 'banjir') {
+      return severity == 'parah' ? 5 : 3;
+    }
+
+    if (severity == 'parah' || severity == 'berat') return 3;
+
+    return 1;
+  }
+
+  double _lightingWeight() {
+    return isNightMode.value ? 5 : 0.5;
   }
 
   void calculateRouteRisks() {
     routeRiskScores.clear();
     routeRiskLabels.clear();
 
-    hasHazardData.value = hazardReports.isNotEmpty;
+    final relevantReports = hazardReports.where((hazard) {
+      final type = _normalizeHazardType(hazard);
+      return _isRoadDamage(type) || _isLightingProblem(type);
+    }).toList();
+
+    hasHazardData.value = relevantReports.isNotEmpty;
 
     if (routes.isEmpty) return;
 
     for (final route in routes) {
-      double score = 0;
+      double roadScore = 0;
+      double lightingScore = 0;
 
-      if (hasHazardData.value) {
-        for (final hazard in hazardReports) {
-          final latitude = hazard['latitude'];
-          final longitude = hazard['longitude'];
+      for (final hazard in relevantReports) {
+        final latitude = hazard['latitude'];
+        final longitude = hazard['longitude'];
 
-          if (latitude is! num || longitude is! num) {
-            continue;
-          }
+        if (latitude is! num || longitude is! num) continue;
 
-          final hazardPoint = LatLng(
-            latitude.toDouble(),
-            longitude.toDouble(),
+        final hazardPoint = LatLng(latitude.toDouble(), longitude.toDouble());
+
+        double nearestDistance = double.infinity;
+
+        for (int i = 0; i < route.length - 1; i++) {
+          final distance = _distanceToSegmentMeters(
+            hazardPoint,
+            route[i],
+            route[i + 1],
           );
 
-          double nearestDistance = double.infinity;
-
-          for (int i = 0; i < route.length - 1; i++) {
-            final meters = _distanceToSegmentMeters(
-              hazardPoint,
-              route[i],
-              route[i + 1],
-            );
-
-            if (meters < nearestDistance) {
-              nearestDistance = meters;
-            }
+          if (distance < nearestDistance) {
+            nearestDistance = distance;
           }
+        }
 
-          if (nearestDistance <= 30) {
-            final type = hazard['type']?.toString() ?? '';
-            final severity =
-                hazard['severity']?.toString() ?? '';
+        if (route.length == 1) {
+          nearestDistance = Geolocator.distanceBetween(
+            hazardPoint.latitude,
+            hazardPoint.longitude,
+            route.first.latitude,
+            route.first.longitude,
+          );
+        }
 
-            if (type == 'lubang' && severity == 'parah') {
-              score += 5;
-            } else if (type == 'lubang') {
-              score += 3;
-            } else if (type == 'jalan_rusak') {
-              score += 3;
-            } else if (type == 'lampu_mati') {
-              score += isNightMode.value ? 5 : 2;
-            } else {
-              score += 1;
-            }
-          }
+        if (nearestDistance > 30) continue;
+
+        final type = _normalizeHazardType(hazard);
+
+        if (_isRoadDamage(type)) {
+          roadScore += _roadDamageWeight(hazard);
+        } else if (_isLightingProblem(type)) {
+          lightingScore += _lightingWeight();
         }
       }
 
-      routeRiskScores.add(score);
+      double combinationScore = 0;
 
-      if (!hasHazardData.value) {
-        routeRiskLabels.add('Belum dinilai');
-      } else if (score >= 8) {
+      if (roadScore > 0 && lightingScore > 0) {
+        combinationScore = isNightMode.value ? 3 : 0.5;
+      }
+
+      final totalScore = roadScore + lightingScore + combinationScore;
+      routeRiskScores.add(totalScore);
+
+      if (totalScore == 0) {
+        routeRiskLabels.add('Risiko rendah');
+      } else if (isNightMode.value && totalScore >= 12) {
+        routeRiskLabels.add('Risiko sangat tinggi');
+      } else if (totalScore >= 8) {
         routeRiskLabels.add('Risiko tinggi');
-      } else if (score >= 3) {
+      } else if (totalScore >= 3) {
         routeRiskLabels.add('Risiko sedang');
       } else {
         routeRiskLabels.add('Risiko rendah');
@@ -354,18 +602,11 @@ class MapsController extends GetxController {
     }
   }
 
-  double _distanceToSegmentMeters(
-    LatLng point,
-    LatLng start,
-    LatLng end,
-  ) {
+  double _distanceToSegmentMeters(LatLng point, LatLng start, LatLng end) {
     const metersPerDegree = 111320.0;
 
-    final latitudeRadians =
-        point.latitude * math.pi / 180;
-
-    final longitudeScale =
-        metersPerDegree * math.cos(latitudeRadians);
+    final latitudeRadians = point.latitude * math.pi / 180;
+    final longitudeScale = metersPerDegree * math.cos(latitudeRadians);
 
     final px = point.longitude * longitudeScale;
     final py = point.latitude * metersPerDegree;
@@ -390,10 +631,7 @@ class MapsController extends GetxController {
       );
     }
 
-    final t = (
-      (px - ax) * dx + (py - ay) * dy
-    ) / lengthSquared;
-
+    final t = ((px - ax) * dx + (py - ay) * dy) / lengthSquared;
     final clampedT = t.clamp(0.0, 1.0);
 
     final nearestX = ax + clampedT * dx;
@@ -402,19 +640,19 @@ class MapsController extends GetxController {
     final differenceX = px - nearestX;
     final differenceY = py - nearestY;
 
-    return math.sqrt(
-      differenceX * differenceX +
-          differenceY * differenceY,
-    );
+    return math.sqrt(differenceX * differenceX + differenceY * differenceY);
   }
 
   Color getRouteColor(int index) {
-    if (!hasHazardData.value ||
-        index >= routeRiskScores.length) {
+    if (!hasHazardData.value || index >= routeRiskScores.length) {
       return Colors.blueGrey;
     }
 
     final score = routeRiskScores[index];
+
+    if (isNightMode.value && score >= 12) {
+      return Colors.red.shade900;
+    }
 
     if (score >= 8) return Colors.red;
     if (score >= 3) return Colors.orange;
@@ -422,18 +660,192 @@ class MapsController extends GetxController {
     return Colors.green;
   }
 
-  void setHazardReports(
-    List<Map<String, dynamic>> reports,
-  ) {
+  void setHazardReports(List<Map<String, dynamic>> reports) {
     hazardReports.assignAll(reports);
     calculateRouteRisks();
   }
 
   void changeRoute(int index) {
+    if (isNavigating.value) {
+      Get.snackbar(
+        'Navigasi sedang berjalan',
+        'Selesaikan navigasi sebelum mengganti rute.',
+      );
+      return;
+    }
+
     if (index < 0 || index >= routes.length) return;
 
     selectedRoute.value = index;
     _fitSelectedRoute();
+  }
+
+  // Memulai navigasi menggunakan GPS perangkat.
+  Future<void> startNavigation() async {
+    if (destination.value == null || routes.isEmpty) {
+      Get.snackbar('Rute belum tersedia', 'Pilih tujuan terlebih dahulu.');
+      return;
+    }
+
+    if (selectedRoute.value >= _routeNavigationSteps.length ||
+        _routeNavigationSteps[selectedRoute.value].isEmpty) {
+      Get.snackbar(
+        'Instruksi belum tersedia',
+        'Silakan muat ulang rute sebelum memulai navigasi.',
+      );
+      return;
+    }
+
+    final permitted = await _checkLocationPermission();
+    if (!permitted) return;
+
+    try {
+      await _positionSubscription?.cancel();
+
+      navigationSteps.assignAll(_routeNavigationSteps[selectedRoute.value]);
+
+      currentStepIndex.value = 0;
+      distanceToNextStep.value = 0;
+
+      final location = currentLocation.value;
+      final target = destination.value!;
+
+      if (location != null) {
+        distanceToDestination.value = Geolocator.distanceBetween(
+          location.latitude,
+          location.longitude,
+          target.latitude,
+          target.longitude,
+        );
+      }
+
+      isNavigating.value = true;
+
+      if (mapReady && location != null) {
+        mapController.move(location, 17);
+      }
+
+      _positionSubscription =
+          Geolocator.getPositionStream(
+            locationSettings: const LocationSettings(
+              accuracy: LocationAccuracy.bestForNavigation,
+              distanceFilter: 5,
+            ),
+          ).listen(
+            _handleNavigationPosition,
+            onError: (error) {
+              Get.snackbar(
+                'GPS bermasalah',
+                'Gagal memperbarui lokasi: $error',
+              );
+              stopNavigation();
+            },
+          );
+
+      Get.snackbar('Navigasi dimulai', 'Ikuti petunjuk arah dari Saferuas.');
+    } catch (e) {
+      isNavigating.value = false;
+      Get.snackbar('Gagal memulai navigasi', e.toString());
+    }
+  }
+
+  void _handleNavigationPosition(Position position) {
+    if (!isNavigating.value) return;
+
+    final location = LatLng(position.latitude, position.longitude);
+    currentLocation.value = location;
+
+    if (mapReady) {
+      mapController.move(location, 17);
+    }
+
+    final target = destination.value;
+    if (target == null) return;
+
+    final remaining = Geolocator.distanceBetween(
+      location.latitude,
+      location.longitude,
+      target.latitude,
+      target.longitude,
+    );
+
+    distanceToDestination.value = remaining;
+
+    // Deteksi kedatangan dalam radius 30 meter.
+    if (remaining <= 30) {
+      finishNavigation();
+      return;
+    }
+
+    _updateNavigationProgress(location);
+  }
+
+  void _updateNavigationProgress(LatLng location) {
+    if (_isUpdatingProgress || navigationSteps.isEmpty) return;
+
+    _isUpdatingProgress = true;
+
+    try {
+      while (currentStepIndex.value < navigationSteps.length) {
+        final step = navigationSteps[currentStepIndex.value];
+
+        final distance = Geolocator.distanceBetween(
+          location.latitude,
+          location.longitude,
+          step.location.latitude,
+          step.location.longitude,
+        );
+
+        distanceToNextStep.value = distance;
+
+        if (distance <= 25 &&
+            currentStepIndex.value < navigationSteps.length - 1) {
+          currentStepIndex.value++;
+          continue;
+        }
+
+        break;
+      }
+    } finally {
+      _isUpdatingProgress = false;
+    }
+  }
+
+  String _formatDistance(double meters) {
+    if (meters >= 1000) {
+      return '${(meters / 1000).toStringAsFixed(1)} km';
+    }
+
+    return '${meters.round()} m';
+  }
+
+  void stopNavigation() {
+    _positionSubscription?.cancel();
+    _positionSubscription = null;
+
+    isNavigating.value = false;
+    navigationSteps.clear();
+    currentStepIndex.value = 0;
+    distanceToNextStep.value = 0;
+
+    if (currentLocation.value != null && mapReady) {
+      mapController.move(currentLocation.value!, 15);
+    }
+  }
+
+  void finishNavigation() {
+    _positionSubscription?.cancel();
+    _positionSubscription = null;
+
+    isNavigating.value = false;
+    navigationSteps.clear();
+    currentStepIndex.value = 0;
+
+    Get.snackbar(
+      'Kamu sudah sampai!',
+      'Perjalanan menuju ${destinationName.value} selesai.',
+      duration: const Duration(seconds: 4),
+    );
   }
 
   void _fitSelectedRoute() {
@@ -444,12 +856,7 @@ class MapsController extends GetxController {
     mapController.fitCamera(
       CameraFit.coordinates(
         coordinates: selectedPoints,
-        padding: const EdgeInsets.fromLTRB(
-          45,
-          230,
-          45,
-          270,
-        ),
+        padding: const EdgeInsets.fromLTRB(45, 230, 45, 270),
       ),
     );
   }
@@ -458,22 +865,16 @@ class MapsController extends GetxController {
     if (!mapReady) return;
 
     final camera = mapController.camera;
+    final newZoom = (camera.zoom + amount).clamp(4.0, 19.0);
 
-    final newZoom =
-        (camera.zoom + amount).clamp(4.0, 19.0);
-
-    mapController.move(
-      camera.center,
-      newZoom,
-    );
-  }
-
-  void toggleMapMode() {
-    isNightMode.toggle();
-    calculateRouteRisks();
+    mapController.move(camera.center, newZoom);
   }
 
   void clearDestination() {
+    if (isNavigating.value) {
+      stopNavigation();
+    }
+
     destination.value = null;
     destinationName.value = '';
 
@@ -485,20 +886,24 @@ class MapsController extends GetxController {
     routeDurations.clear();
     routeRiskScores.clear();
     routeRiskLabels.clear();
+    _routeNavigationSteps.clear();
 
     selectedRoute.value = 0;
-    hasHazardData.value = hazardReports.isNotEmpty;
+
+    hasHazardData.value = hazardReports.any((hazard) {
+      final type = _normalizeHazardType(hazard);
+      return _isRoadDamage(type) || _isLightingProblem(type);
+    });
 
     if (currentLocation.value != null && mapReady) {
-      mapController.move(
-        currentLocation.value!,
-        15,
-      );
+      mapController.move(currentLocation.value!, 15);
     }
   }
 
   @override
   void onClose() {
+    _clockTimer?.cancel();
+    _positionSubscription?.cancel();
     searchController.dispose();
     super.onClose();
   }
