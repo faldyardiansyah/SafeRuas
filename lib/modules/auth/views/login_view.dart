@@ -28,7 +28,6 @@ class LoginView extends GetView<LoginController> {
             children: [
               // Header Saferuas
               _buildHeader(),
-
               // Form login
               Padding(
                 padding: const EdgeInsets.fromLTRB(24, 25, 24, 24),
@@ -333,6 +332,7 @@ class LoginView extends GetView<LoginController> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                const SizedBox(height: 10),
                 Text(
                       'Saferuas.',
                       style: GoogleFonts.plusJakartaSans(

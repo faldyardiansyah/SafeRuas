@@ -28,7 +28,7 @@ class SplashController extends GetxController {
       progress.value = (i + 1) / loadingSteps.length;
 
       await Future.delayed(
-        const Duration(milliseconds: 1800),
+        const Duration(milliseconds: 1600),
       );
     }
 

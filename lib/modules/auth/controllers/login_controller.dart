@@ -24,10 +24,10 @@ class LoginController extends GetxController {
     rememberMe.value = value ?? false;
   }
 
-  // Validasi email atau nomor telepon
+  // Validasi email
   String? validateEmail(String? value) {
     if (value == null || value.trim().isEmpty) {
-      return 'Email atau nomor telepon wajib diisi';
+      return 'Email wajib diisi';
     }
 
     final input = value.trim();

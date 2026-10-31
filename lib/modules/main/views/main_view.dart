@@ -3,29 +3,28 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:saferuas/utils/app_colors.dart';
+import 'package:saferuas/modules/home/views/home_view.dart';
+import 'package:saferuas/modules/maps/views/maps_view.dart';
+import 'package:saferuas/modules/maps/controllers/maps_controller.dart';
 
 import '../controllers/main_controller.dart';
 
 class MainView extends GetView<MainController> {
-  const MainView({super.key});
+  MainView({super.key}) {
+    if (!Get.isRegistered<MapsController>()) {
+      Get.put(MapsController());
+    }
+  }
 
-  final List<Widget> pages = const [
-    _PlaceholderPage(
-      title: 'Home',
-      description: 'Selamat datang di Saferuas.',
-      icon: Icons.home_rounded,
-    ),
-    _PlaceholderPage(
-      title: 'Maps',
-      description: 'Lihat kondisi jalan di sekitarmu.',
-      icon: Icons.map_rounded,
-    ),
-    _PlaceholderPage(
+  final List<Widget> pages = [
+    const HomeView(),
+    const MapsView(),
+    const _PlaceholderPage(
       title: 'Riwayat',
       description: 'Lihat riwayat laporan kerusakan jalan.',
       icon: Icons.history_rounded,
     ),
-    _PlaceholderPage(
+    const _PlaceholderPage(
       title: 'Profile',
       description: 'Kelola informasi akunmu.',
       icon: Icons.person_rounded,
@@ -60,14 +59,11 @@ class MainView extends GetView<MainController> {
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          // Background bar dengan lekukan halus
           Positioned.fill(
             child: CustomPaint(
               painter: _NavBarPainter(shadowColor: Colors.black),
             ),
           ),
-
-          // Item navigasi
           Positioned.fill(
             child: Row(
               children: [
@@ -83,7 +79,7 @@ class MainView extends GetView<MainController> {
                   label: 'Maps',
                   index: 1,
                 ),
-                const SizedBox(width: 92), // ruang untuk FAB
+                const SizedBox(width: 92),
                 _buildNavItem(
                   icon: Icons.history_rounded,
                   inactiveIcon: Icons.history_rounded,
@@ -99,8 +95,6 @@ class MainView extends GetView<MainController> {
               ],
             ),
           ),
-
-          // FAB tengah
           Positioned(
             top: -29,
             left: 0,
@@ -185,13 +179,15 @@ class MainView extends GetView<MainController> {
 
 class _NavBarPainter extends CustomPainter {
   final Color shadowColor;
+
   const _NavBarPainter({required this.shadowColor});
 
   @override
   void paint(Canvas canvas, Size size) {
-    const r = 30.0; // radius sudut bar
-    const depth = 40.0; // kedalaman lekukan
-    const half = 46.0; // setengah lebar lekukan
+    const r = 30.0;
+    const depth = 40.0;
+    const half = 46.0;
+
     final w = size.width;
     final h = size.height;
     final cx = w / 2;
@@ -212,6 +208,7 @@ class _NavBarPainter extends CustomPainter {
       ..close();
 
     canvas.drawShadow(path, shadowColor.withValues(alpha: 0.25), 14, true);
+
     canvas.drawPath(path, Paint()..color = Colors.white);
   }
 

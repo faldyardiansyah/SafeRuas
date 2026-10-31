@@ -45,7 +45,7 @@ class AppPages {
     ),
     GetPage(
       name: '/main',
-      page: () => const MainView(),
+      page: () => MainView(),
       binding: BindingsBuilder(() {
         Get.lazyPut<MainController>(() => MainController());
       }),
