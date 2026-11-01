@@ -5,6 +5,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
@@ -47,6 +48,7 @@ class MapsController extends GetxController {
   final selectedRoute = 0.obs;
   final routeDistances = <String>[].obs;
   final routeDurations = <String>[].obs;
+  final _routeDurationMinutes = <double>[];
 
   final hazardReports = <Map<String, dynamic>>[].obs;
   final routeRiskScores = <double>[].obs;
@@ -59,6 +61,20 @@ class MapsController extends GetxController {
   final navigationSteps = <NavigationStep>[].obs;
   final distanceToNextStep = 0.0.obs;
   final distanceToDestination = 0.0.obs;
+  final remainingRoute = <LatLng>[].obs;
+  final vehicleHeading = 0.0.obs;
+  final remainingDuration = 0.0.obs;
+  final gpsAccuracy = 0.0.obs;
+  final isSpeakingEnabled = true.obs;
+  final FlutterTts _tts = FlutterTts();
+  final Set<int> _spokenApproachSteps = <int>{};
+  double _routeTotalDistance = 0;
+  double _routeTotalDuration = 0;
+  int _progressPointIndex = 0;
+  int _offRouteCount = 0;
+  double _lastValidSpeed = 0;
+  DateTime _lastSpeedUpdate = DateTime.fromMillisecondsSinceEpoch(0);
+  LatLng? _lastRawGpsLocation;
 
   StreamSubscription<Position>? _positionSubscription;
   Timer? _clockTimer;
@@ -88,8 +104,18 @@ class MapsController extends GetxController {
     return _formatDistance(distanceToNextStep.value);
   }
 
-  String get destinationDistanceText {
-    return _formatDistance(distanceToDestination.value);
+  String get destinationDistanceText =>
+      _formatDistance(distanceToDestination.value);
+
+  List<LatLng> get routeToDraw => remainingRoute;
+
+  String get remainingTimeText {
+    final minutes = remainingDuration.value.ceil();
+    if (minutes <= 0) return '<1 menit';
+    if (minutes < 60) return '$minutes menit';
+    final hours = minutes ~/ 60;
+    final rest = minutes % 60;
+    return rest == 0 ? '$hours jam' : '$hours jam $rest menit';
   }
 
   @override
@@ -103,6 +129,7 @@ class MapsController extends GetxController {
       (_) => updateWibTime(),
     );
 
+    _configureTts();
     getCurrentLocation();
   }
 
@@ -274,6 +301,7 @@ class MapsController extends GetxController {
       routes.clear();
       routeDistances.clear();
       routeDurations.clear();
+      _routeDurationMinutes.clear();
       routeRiskScores.clear();
       routeRiskLabels.clear();
       _routeNavigationSteps.clear();
@@ -322,6 +350,7 @@ class MapsController extends GetxController {
 
         routeDistances.add('${distance.toStringAsFixed(1)} km');
         routeDurations.add('${duration.round()} menit');
+        _routeDurationMinutes.add(duration);
 
         final steps = <NavigationStep>[];
         final legs = route['legs'] as List? ?? [];
@@ -361,6 +390,10 @@ class MapsController extends GetxController {
       }
 
       selectedRoute.value = 0;
+      if (routeData.isNotEmpty) {
+        _routeTotalDistance = (routeData[0]['distance'] as num).toDouble();
+        _routeTotalDuration = (routeData[0]['duration'] as num).toDouble() / 60;
+      }
 
       calculateRouteRisks();
       _fitSelectedRoute();
@@ -368,6 +401,7 @@ class MapsController extends GetxController {
       routes.clear();
       routeDistances.clear();
       routeDurations.clear();
+      _routeDurationMinutes.clear();
       routeRiskScores.clear();
       routeRiskLabels.clear();
       _routeNavigationSteps.clear();
@@ -680,58 +714,67 @@ class MapsController extends GetxController {
     _fitSelectedRoute();
   }
 
-  // Memulai navigasi menggunakan GPS perangkat.
+  Future<void> _configureTts() async {
+    try {
+      await _tts.setLanguage('id-ID');
+      await _tts.setSpeechRate(0.48);
+      await _tts.setVolume(1.0);
+      await _tts.setPitch(1.0);
+      await _tts.awaitSpeakCompletion(true);
+    } catch (_) {
+      // Ketersediaan suara Indonesia mengikuti mesin TTS di perangkat.
+    }
+  }
+
+  Future<void> speak(String message) async {
+    if (!isSpeakingEnabled.value || message.trim().isEmpty) return;
+    try {
+      await _tts.stop();
+      await _tts.speak(message);
+    } catch (_) {}
+  }
+
   Future<void> startNavigation() async {
     if (destination.value == null || routes.isEmpty) {
       Get.snackbar('Rute belum tersedia', 'Pilih tujuan terlebih dahulu.');
       return;
     }
-
     if (selectedRoute.value >= _routeNavigationSteps.length ||
         _routeNavigationSteps[selectedRoute.value].isEmpty) {
       Get.snackbar(
         'Instruksi belum tersedia',
-        'Silakan muat ulang rute sebelum memulai navigasi.',
+        'Muat ulang rute sebelum navigasi.',
       );
       return;
     }
-
-    final permitted = await _checkLocationPermission();
-    if (!permitted) return;
+    if (!await _checkLocationPermission()) return;
 
     try {
       await _positionSubscription?.cancel();
-
+      await _tts.stop();
       navigationSteps.assignAll(_routeNavigationSteps[selectedRoute.value]);
-
       currentStepIndex.value = 0;
       distanceToNextStep.value = 0;
-
-      final location = currentLocation.value;
-      final target = destination.value!;
-
-      if (location != null) {
-        distanceToDestination.value = Geolocator.distanceBetween(
-          location.latitude,
-          location.longitude,
-          target.latitude,
-          target.longitude,
-        );
-      }
-
+      _spokenApproachSteps.clear();
+      _progressPointIndex = 0;
+      _lastValidSpeed = 0;
+      _lastRawGpsLocation = null;
+      _offRouteCount = 0;
+      remainingRoute.assignAll(routes[selectedRoute.value]);
+      _routeTotalDistance = _polylineLength(routes[selectedRoute.value]);
+      _routeTotalDuration = selectedRoute.value < _routeDurationMinutes.length
+          ? _routeDurationMinutes[selectedRoute.value]
+          : 0;
+      remainingDuration.value = _routeTotalDuration;
       isNavigating.value = true;
 
-      if (mapReady && location != null) {
-        mapController.move(location, 17);
-      }
-
+      final settings = AndroidSettings(
+        accuracy: LocationAccuracy.bestForNavigation,
+        distanceFilter: 0,
+        forceLocationManager: false,
+      );
       _positionSubscription =
-          Geolocator.getPositionStream(
-            locationSettings: const LocationSettings(
-              accuracy: LocationAccuracy.bestForNavigation,
-              distanceFilter: 5,
-            ),
-          ).listen(
+          Geolocator.getPositionStream(locationSettings: settings).listen(
             _handleNavigationPosition,
             onError: (error) {
               Get.snackbar(
@@ -741,8 +784,10 @@ class MapsController extends GetxController {
               stopNavigation();
             },
           );
-
-      Get.snackbar('Navigasi dimulai', 'Ikuti petunjuk arah dari Saferuas.');
+      final current = currentLocation.value;
+      if (mapReady && current != null) mapController.move(current, 17);
+      await speak('Navigasi dimulai. Ikuti petunjuk Saferuas.');
+      Get.snackbar('Navigasi dimulai', 'GPS aktif. Ikuti petunjuk arah.');
     } catch (e) {
       isNavigating.value = false;
       Get.snackbar('Gagal memulai navigasi', e.toString());
@@ -751,59 +796,138 @@ class MapsController extends GetxController {
 
   void _handleNavigationPosition(Position position) {
     if (!isNavigating.value) return;
-
+    // Abaikan fix GPS yang sangat buruk agar marker tidak melompat jauh.
+    if (position.accuracy > 50) return;
     final location = LatLng(position.latitude, position.longitude);
     currentLocation.value = location;
-
-    if (mapReady) {
-      mapController.move(location, 17);
+    gpsAccuracy.value = position.accuracy;
+    if (position.heading >= 0 &&
+        position.heading.isFinite &&
+        (position.speed > 1.0 || position.heading != 0)) {
+      vehicleHeading.value = position.heading;
     }
-
+    // Ikuti setiap fix GPS yang valid; move() tidak menunggu animasi kamera.
+    if (mapReady) {
+      try {
+        mapController.move(
+          location,
+          mapController.camera.zoom < 16 ? 17 : mapController.camera.zoom,
+        );
+      } catch (_) {}
+    }
+    if (position.speed.isFinite &&
+        position.speed >= 0 &&
+        position.accuracy <= 25) {
+      _lastValidSpeed = position.speed;
+      _lastSpeedUpdate = DateTime.now();
+    }
     final target = destination.value;
     if (target == null) return;
-
-    final remaining = Geolocator.distanceBetween(
+    final directDistance = Geolocator.distanceBetween(
       location.latitude,
       location.longitude,
       target.latitude,
       target.longitude,
     );
-
-    distanceToDestination.value = remaining;
-
-    // Deteksi kedatangan dalam radius 30 meter.
-    if (remaining <= 30) {
-      finishNavigation();
-      return;
+    _updateRemainingRoute(location);
+    final routeDistance = _polylineLength(remainingRoute);
+    distanceToDestination.value = routeDistance > 0
+        ? routeDistance
+        : directDistance;
+    // ETA dasar mengikuti durasi OSRM sesuai proporsi rute yang tersisa.
+    // Untuk navigasi motor di jalan lokal, gunakan estimasi konservatif
+    // minimal 25 km/jam agar ETA tidak terlalu optimistis. Ini asumsi
+    // aplikasi, bukan data lalu lintas realtime.
+    if (_routeTotalDistance > 0 && _routeTotalDuration > 0) {
+      final remainingRatio = (distanceToDestination.value / _routeTotalDistance)
+          .clamp(0.0, 1.0);
+      final osrmMinutes = _routeTotalDuration * remainingRatio;
+      const conservativeSpeedKmh = 25.0;
+      final conservativeMinutes =
+          (distanceToDestination.value / 1000) / conservativeSpeedKmh * 60;
+      remainingDuration.value = math.max(osrmMinutes, conservativeMinutes);
     }
-
     _updateNavigationProgress(location);
+    // Radius tiba dibuat lebih ketat; tetap mensyaratkan fix GPS yang layak.
+    if (directDistance <= 18 && position.accuracy <= 20) {
+      finishNavigation();
+    }
+  }
+
+  void _updateRemainingRoute(LatLng location) {
+    if (routes.isEmpty || selectedRoute.value >= routes.length) return;
+    final route = routes[selectedRoute.value];
+    if (route.length < 2) return;
+    var bestIndex = _progressPointIndex.clamp(0, route.length - 1);
+    var bestDistance = double.infinity;
+    final end = math.min(route.length - 1, _progressPointIndex + 120);
+    for (var i = _progressPointIndex; i <= end; i++) {
+      final d = Geolocator.distanceBetween(
+        location.latitude,
+        location.longitude,
+        route[i].latitude,
+        route[i].longitude,
+      );
+      if (d < bestDistance) {
+        bestDistance = d;
+        bestIndex = i;
+      }
+    }
+    if (bestDistance <= 45 && bestIndex >= _progressPointIndex) {
+      // Hanya majukan progres ketika GPS cukup dekat dengan geometri rute.
+      _progressPointIndex = bestIndex;
+      final tail = route.skip(bestIndex + 1).toList();
+      remainingRoute.assignAll([location, ...tail]);
+      _offRouteCount = 0;
+    } else {
+      // Jangan menggeser titik progres saat GPS meleset; hindari garis rute terpotong.
+      _offRouteCount++;
+      remainingRoute.assignAll([
+        route[_progressPointIndex],
+        ...route.skip(_progressPointIndex + 1),
+      ]);
+    }
+  }
+
+  double _polylineLength(List<LatLng> points) {
+    var total = 0.0;
+    for (var i = 0; i < points.length - 1; i++) {
+      total += Geolocator.distanceBetween(
+        points[i].latitude,
+        points[i].longitude,
+        points[i + 1].latitude,
+        points[i + 1].longitude,
+      );
+    }
+    return total;
   }
 
   void _updateNavigationProgress(LatLng location) {
     if (_isUpdatingProgress || navigationSteps.isEmpty) return;
-
     _isUpdatingProgress = true;
-
     try {
       while (currentStepIndex.value < navigationSteps.length) {
-        final step = navigationSteps[currentStepIndex.value];
-
+        final index = currentStepIndex.value;
+        final step = navigationSteps[index];
         final distance = Geolocator.distanceBetween(
           location.latitude,
           location.longitude,
           step.location.latitude,
           step.location.longitude,
         );
-
         distanceToNextStep.value = distance;
-
-        if (distance <= 25 &&
-            currentStepIndex.value < navigationSteps.length - 1) {
+        if (distance <= 100 && !_spokenApproachSteps.contains(index)) {
+          _spokenApproachSteps.add(index);
+          speak(
+            distance > 35
+                ? 'Dalam sekitar ${distance.round()} meter, ${step.instruction}'
+                : step.instruction,
+          );
+        }
+        if (distance <= 22 && index < navigationSteps.length - 1) {
           currentStepIndex.value++;
           continue;
         }
-
         break;
       }
     } finally {
@@ -812,22 +936,19 @@ class MapsController extends GetxController {
   }
 
   String _formatDistance(double meters) {
-    if (meters >= 1000) {
-      return '${(meters / 1000).toStringAsFixed(1)} km';
-    }
-
+    if (meters >= 1000) return '${(meters / 1000).toStringAsFixed(1)} km';
     return '${meters.round()} m';
   }
 
   void stopNavigation() {
     _positionSubscription?.cancel();
     _positionSubscription = null;
-
+    _tts.stop();
     isNavigating.value = false;
     navigationSteps.clear();
+    remainingRoute.clear();
     currentStepIndex.value = 0;
     distanceToNextStep.value = 0;
-
     if (currentLocation.value != null && mapReady) {
       mapController.move(currentLocation.value!, 15);
     }
@@ -836,11 +957,12 @@ class MapsController extends GetxController {
   void finishNavigation() {
     _positionSubscription?.cancel();
     _positionSubscription = null;
-
+    _tts.stop();
     isNavigating.value = false;
     navigationSteps.clear();
+    remainingRoute.clear();
     currentStepIndex.value = 0;
-
+    speak('Anda telah tiba di tujuan.');
     Get.snackbar(
       'Kamu sudah sampai!',
       'Perjalanan menuju ${destinationName.value} selesai.',
@@ -884,6 +1006,7 @@ class MapsController extends GetxController {
     routes.clear();
     routeDistances.clear();
     routeDurations.clear();
+    _routeDurationMinutes.clear();
     routeRiskScores.clear();
     routeRiskLabels.clear();
     _routeNavigationSteps.clear();
@@ -904,6 +1027,7 @@ class MapsController extends GetxController {
   void onClose() {
     _clockTimer?.cancel();
     _positionSubscription?.cancel();
+    _tts.stop();
     searchController.dispose();
     super.onClose();
   }

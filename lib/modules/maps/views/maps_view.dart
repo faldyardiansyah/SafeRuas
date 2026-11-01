@@ -3,6 +3,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:latlong2/latlong.dart';
+import 'dart:math' as math;
 import 'package:saferuas/utils/app_colors.dart';
 
 import '../controllers/maps_controller.dart';
@@ -71,12 +72,20 @@ class MapsView extends GetView<MapsController> {
         ),
         PolylineLayer(
           polylines: [
-            for (int i = 0; i < controller.routes.length; i++)
+            if (controller.isNavigating.value &&
+                controller.routeToDraw.length > 1)
               Polyline(
-                points: controller.routes[i],
-                strokeWidth: controller.selectedRoute.value == i ? 7 : 5,
-                color: controller.getRouteColor(i),
+                points: controller.routeToDraw,
+                strokeWidth: 7,
+                color: AppColors.primaryDark,
               ),
+            if (!controller.isNavigating.value)
+              for (int i = 0; i < controller.routes.length; i++)
+                Polyline(
+                  points: controller.routes[i],
+                  strokeWidth: controller.selectedRoute.value == i ? 7 : 5,
+                  color: controller.getRouteColor(i),
+                ),
           ],
         ),
         MarkerLayer(
@@ -84,25 +93,34 @@ class MapsView extends GetView<MapsController> {
             if (controller.currentLocation.value != null)
               Marker(
                 point: controller.currentLocation.value!,
-                width: 42,
-                height: 42,
-                child: Container(
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: AppColors.primary.withValues(alpha: 0.18),
-                  ),
-                  child: Center(
-                    child: Container(
-                      width: 17,
-                      height: 17,
-                      decoration: BoxDecoration(
-                        color: AppColors.primaryDark,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 3),
+                width: 48,
+                height: 48,
+                child: controller.isNavigating.value
+                    ? Transform.rotate(
+                        angle: controller.vehicleHeading.value * math.pi / 180,
+                        child: const Icon(
+                          Icons.navigation_rounded,
+                          color: AppColors.error,
+                          size: 43,
+                        ),
+                      )
+                    : Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: AppColors.primary.withValues(alpha: .18),
+                        ),
+                        child: Center(
+                          child: Container(
+                            width: 17,
+                            height: 17,
+                            decoration: BoxDecoration(
+                              color: AppColors.primaryDark,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white, width: 3),
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                ),
               ),
             if (controller.destination.value != null)
               Marker(
@@ -692,14 +710,35 @@ class MapsView extends GetView<MapsController> {
               Container(width: 1, height: 40, color: AppColors.divider),
               Expanded(
                 child: _navigationInfo(
-                  'Tujuan',
-                  controller.destinationName.value,
-                  Icons.flag_outlined,
+                  'Estimasi tiba',
+                  controller.remainingTimeText,
+                  Icons.schedule_rounded,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Suara petunjuk arah',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 10,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ),
+              Obx(
+                () => Switch.adaptive(
+                  value: controller.isSpeakingEnabled.value,
+                  onChanged: (value) =>
+                      controller.isSpeakingEnabled.value = value,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
           SizedBox(
             width: double.infinity,
             child: OutlinedButton.icon(
