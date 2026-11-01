@@ -79,13 +79,7 @@ class HomeController extends GetxController {
       icon: Icons.alt_route_rounded,
       color: Color(0xFF059669),
       bg: Color(0xFFECFDF5),
-    ),
-    (
-      label: 'Smart Cam',
-      icon: Icons.videocam_outlined,
-      color: Color(0xFF1F5BFF),
-      bg: Color(0xFFEFF6FF),
-    ),
+    )
   ];
   // Kosong tanpa data dummy
   final RxList<ReportItem> recentReports = <ReportItem>[].obs;
