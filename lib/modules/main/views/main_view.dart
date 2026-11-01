@@ -5,26 +5,22 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:saferuas/utils/app_colors.dart';
 import 'package:saferuas/modules/home/views/home_view.dart';
 import 'package:saferuas/modules/maps/views/maps_view.dart';
-import 'package:saferuas/modules/maps/controllers/maps_controller.dart';
 
 import '../controllers/main_controller.dart';
 
-class MainView extends GetView<MainController> {
-  MainView({super.key}) {
-    if (!Get.isRegistered<MapsController>()) {
-      Get.put(MapsController());
-    }
-  }
 
-  final List<Widget> pages = [
-    const HomeView(),
-    const MapsView(),
-    const _PlaceholderPage(
+class MainView extends GetView<MainController> {
+  const MainView({super.key});
+
+  final List<Widget> pages = const [
+    HomeView(),
+    MapsView(),
+    _PlaceholderPage(
       title: 'Riwayat',
       description: 'Lihat riwayat laporan kerusakan jalan.',
       icon: Icons.history_rounded,
     ),
-    const _PlaceholderPage(
+    _PlaceholderPage(
       title: 'Profile',
       description: 'Kelola informasi akunmu.',
       icon: Icons.person_rounded,

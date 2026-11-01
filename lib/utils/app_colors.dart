@@ -69,4 +69,39 @@ class AppColors {
     end: Alignment.bottomRight,
     colors: [primary, primaryDark],
   );
+  
+    // Home Colors
+  static const Color homeBlue = Color(0xFF1F5BFF);
+  static const Color homeCardTint = Color(0xFFD4E0FF);
+  static const Color homeChipTint = Color(0xFFC1DCFF);
+  static const Color homeCardBorder = Color(0xE5E2E8F0);
+  static const Color yellowAccent = Color(0xFFFCD34D);
+
+  static const Color slate900 = Color(0xFF0F172A);
+  static const Color slate800 = Color(0xFF1E293B);
+  static const Color slate700 = Color(0xFF334155);
+  static const Color slate600 = Color(0xFF475569);
+  static const Color slate500 = Color(0xFF64748B);
+  static const Color slate400 = Color(0xFF94A3B8);
+  static const Color slate200 = Color(0xFFE2E8F0);
+  static const Color slate100 = Color(0xFFF1F5F9);
+
+  static const Color emerald50 = Color(0xFFECFDF5);
+  static const Color emerald500 = Color(0xFF10B981);
+  static const Color emerald600 = Color(0xFF059669);
+  static const Color emerald700 = Color(0xFF047857);
+  static const Color amber500 = Color(0xFFF59E0B);
+  static const Color amber600 = Color(0xFFD97706);
+
+  static const LinearGradient homeHeaderGradient = LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [Color(0xFF1852EE), Color(0xFF1F5BFF), Color(0xFF2B66FF)],
+  );
+
+  static const LinearGradient homeWeatherGradient = LinearGradient(
+    begin: Alignment.centerLeft,
+    end: Alignment.centerRight,
+    colors: [Color(0xFF103EBC), Color(0xFF1A4CD2), Color(0xFF2563EB)],
+  );
 }
