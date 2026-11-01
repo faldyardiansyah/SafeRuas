@@ -5,6 +5,7 @@ import 'package:saferuas/modules/auth/controllers/login_controller.dart';
 import 'package:saferuas/modules/auth/views/login_view.dart';
 import 'package:saferuas/modules/auth/controllers/register_controller.dart';
 import 'package:saferuas/modules/auth/views/register_view.dart';
+import 'package:saferuas/modules/profile/controllers/profile_controller.dart';
 import '../modules/splash/controllers/splash_controller.dart';
 import '../modules/splash/views/splash_view.dart';
 import 'package:saferuas/modules/maps/controllers/maps_controller.dart';
@@ -52,6 +53,7 @@ class AppPages {
         Get.lazyPut<MainController>(() => MainController());
         Get.lazyPut<HomeController>(() => HomeController());
         Get.lazyPut<MapsController>(() => MapsController());
+        Get.lazyPut<ProfileController>(() => ProfileController());
       }),
     ),
   ];

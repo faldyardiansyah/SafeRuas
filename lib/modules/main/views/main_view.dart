@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:saferuas/modules/profile/views/profile_view.dart';
 import 'package:saferuas/utils/app_colors.dart';
 import 'package:saferuas/modules/home/views/home_view.dart';
 import 'package:saferuas/modules/maps/views/maps_view.dart';
@@ -20,11 +21,7 @@ class MainView extends GetView<MainController> {
       description: 'Lihat riwayat laporan kerusakan jalan.',
       icon: Icons.history_rounded,
     ),
-    _PlaceholderPage(
-      title: 'Profile',
-      description: 'Kelola informasi akunmu.',
-      icon: Icons.person_rounded,
-    ),
+    ProfileView(),
   ];
 
   @override
