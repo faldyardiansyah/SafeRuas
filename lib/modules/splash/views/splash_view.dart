@@ -76,7 +76,7 @@ class SplashView extends GetView<SplashController> {
                               ],
                             ),
                             child: Image.asset(
-                              'assets/images/logo.jpeg',
+                              'assets/images/logo.png',
                               fit: BoxFit.contain,
                               errorBuilder: (context, error, stackTrace) {
                                 return const Icon(
