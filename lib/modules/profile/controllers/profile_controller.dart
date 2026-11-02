@@ -11,10 +11,27 @@ class ProfileController extends GetxController {
   final nameController = TextEditingController();
   final phoneController = TextEditingController();
 
+  final isLoading = true.obs;
+
   @override
   void onInit() {
     super.onInit();
     nameController.text = name.value;
+    loadProfile();
+  }
+
+  Future<void> loadProfile() async {
+    isLoading.value = true;
+
+    try {
+      await Future.delayed(const Duration(seconds: 2));
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<void> refreshProfile() async {
+    await loadProfile();
   }
 
   void openEditProfile() {
@@ -63,7 +80,6 @@ class ProfileController extends GetxController {
       return;
     }
 
-    // Sementara hanya tersimpan di memori aplikasi.
     name.value = newName;
     phone.value = newPhone.isEmpty ? 'Belum ditambahkan' : newPhone;
 
@@ -71,7 +87,7 @@ class ProfileController extends GetxController {
 
     showAwesomeSnackbar(
       title: 'Profil diperbarui',
-      message: 'Perubahan sementara berhasil diterapkan.',
+      message: 'Perubahan profil berhasil diterapkan.',
       contentType: ContentType.success,
     );
   }
@@ -85,8 +101,6 @@ class ProfileController extends GetxController {
   }
 
   void logout() {
-    // TODO: Hubungkan ke API logout saat backend siap.
-    // Ganti '/login' jika nama route login di proyekmu berbeda.
     Get.offAllNamed('/login');
   }
 

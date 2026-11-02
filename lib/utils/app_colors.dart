@@ -93,10 +93,10 @@ class AppColors {
   static const Color amber500 = Color(0xFFF59E0B);
   static const Color amber600 = Color(0xFFD97706);
 
-  static const LinearGradient homeHeaderGradient = LinearGradient(
-    begin: Alignment.topCenter,
-    end: Alignment.bottomCenter,
-    colors: [Color(0xFF1852EE), Color(0xFF1F5BFF), Color(0xFF2B66FF)],
+   static const LinearGradient homeHeaderGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [homeBlue, primaryDark],
   );
 
   static const LinearGradient homeWeatherGradient = LinearGradient(

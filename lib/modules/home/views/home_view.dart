@@ -9,6 +9,7 @@ import '../controllers/home_controller.dart';
 
 class HomeView extends GetView<HomeController> {
   const HomeView({super.key});
+
   @override
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
@@ -17,6 +18,7 @@ class HomeView extends GetView<HomeController> {
         color: Colors.white,
         child: Obx(() {
           final isLoading = controller.isLoading.value;
+
           return Column(
             children: [
               Expanded(
@@ -33,97 +35,82 @@ class HomeView extends GetView<HomeController> {
                     backgroundColor: Colors.white,
                     displacement: 40,
                     edgeOffset: 0,
-                    notificationPredicate: (notification) {
-                      return notification.depth == 0;
-                    },
+                    notificationPredicate: (notification) =>
+                        notification.depth == 0,
                     child: SingleChildScrollView(
                       physics: const AlwaysScrollableScrollPhysics(
-                        parent: BouncingScrollPhysics(),
+                        parent: ClampingScrollPhysics(),
                       ),
                       padding: const EdgeInsets.only(bottom: 120),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           _buildHeader(context)
-    .animate()
-    .fadeIn(
-      duration: 700.ms,
-      curve: Curves.easeOut,
-    )
-    .slideY(
-      begin: 0.12,
-      end: 0,
-      duration: 700.ms,
-      curve: Curves.easeOutCubic,
-    ),
+                              .animate()
+                              .fadeIn(duration: 650.ms, curve: Curves.easeOut)
+                              .slideY(
+                                begin: -0.06,
+                                end: 0,
+                                duration: 700.ms,
+                                curve: Curves.easeOutCubic,
+                              )
+                              .blur(
+                                begin: const Offset(0, 5),
+                                end: Offset.zero,
+                                duration: 650.ms,
+                              ),
 
-const SizedBox(height: 24),
+                          const SizedBox(height: 24),
 
-_buildQuickFeatures()
-    .animate()
-    .fadeIn(
-      delay: 100.ms,
-      duration: 600.ms,
-      curve: Curves.easeOut,
-    )
-    .slideY(
-      begin: 0.12,
-      end: 0,
-      delay: 100.ms,
-      duration: 600.ms,
-      curve: Curves.easeOutCubic,
-    ),
+                          _buildQuickFeatures()
+                              .animate()
+                              .fadeIn(delay: 100.ms, duration: 550.ms)
+                              .slideY(
+                                begin: 0.08,
+                                end: 0,
+                                delay: 100.ms,
+                                duration: 600.ms,
+                                curve: Curves.easeOutCubic,
+                              ),
 
-const SizedBox(height: 24),
+                          const SizedBox(height: 24),
 
-_buildRecentReports()
-    .animate()
-    .fadeIn(
-      delay: 200.ms,
-      duration: 600.ms,
-      curve: Curves.easeOut,
-    )
-    .slideY(
-      begin: 0.12,
-      end: 0,
-      delay: 200.ms,
-      duration: 600.ms,
-      curve: Curves.easeOutCubic,
-    ),
+                          _buildRecentReports()
+                              .animate()
+                              .fadeIn(delay: 200.ms, duration: 550.ms)
+                              .slideY(
+                                begin: 0.08,
+                                end: 0,
+                                delay: 200.ms,
+                                duration: 600.ms,
+                                curve: Curves.easeOutCubic,
+                              ),
 
-const SizedBox(height: 24),
+                          const SizedBox(height: 24),
 
-_buildConditions()
-    .animate()
-    .fadeIn(
-      delay: 300.ms,
-      duration: 600.ms,
-      curve: Curves.easeOut,
-    )
-    .slideY(
-      begin: 0.12,
-      end: 0,
-      delay: 300.ms,
-      duration: 600.ms,
-      curve: Curves.easeOutCubic,
-    ),
+                          _buildConditions()
+                              .animate()
+                              .fadeIn(delay: 300.ms, duration: 550.ms)
+                              .slideY(
+                                begin: 0.08,
+                                end: 0,
+                                delay: 300.ms,
+                                duration: 600.ms,
+                                curve: Curves.easeOutCubic,
+                              ),
 
-const SizedBox(height: 24),
+                          const SizedBox(height: 24),
 
-_buildImpact()
-    .animate()
-    .fadeIn(
-      delay: 400.ms,
-      duration: 600.ms,
-      curve: Curves.easeOut,
-    )
-    .slideY(
-      begin: 0.12,
-      end: 0,
-      delay: 400.ms,
-      duration: 600.ms,
-      curve: Curves.easeOutCubic,
-    ),
+                          _buildImpact()
+                              .animate()
+                              .fadeIn(delay: 400.ms, duration: 550.ms)
+                              .slideY(
+                                begin: 0.08,
+                                end: 0,
+                                delay: 400.ms,
+                                duration: 600.ms,
+                                curve: Curves.easeOutCubic,
+                              ),
                         ],
                       ),
                     ),

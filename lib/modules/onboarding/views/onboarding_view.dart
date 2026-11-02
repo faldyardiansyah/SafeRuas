@@ -29,11 +29,7 @@ class OnboardingView extends GetView<OnboardingController> {
                       borderRadius: BorderRadius.circular(13),
                       border: Border.all(color: AppColors.onboardingChipBorder),
                     ),
-                    child: const Icon(
-                      Icons.alt_route_rounded,
-                      color: AppColors.onboardingPrimary,
-                      size: 23,
-                    ),
+                    child: Image.asset('assets/images/logo.png', width: 20, height: 20),
                   ),
                   const SizedBox(width: 10),
                   Text(

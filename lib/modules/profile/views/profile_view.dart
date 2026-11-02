@@ -2,11 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_animate/flutter_animate.dart' hide ShimmerEffect;
 import 'package:saferuas/modules/profile/controllers/profile_controller.dart';
-
 import 'package:saferuas/utils/app_colors.dart';
-
+import 'package:skeletonizer/skeletonizer.dart';
 
 class ProfileView extends GetView<ProfileController> {
   const ProfileView({super.key});
@@ -19,51 +18,55 @@ class ProfileView extends GetView<ProfileController> {
       value: SystemUiOverlayStyle.light,
       child: Scaffold(
         backgroundColor: AppColors.slate100,
-        body: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.only(bottom: 125),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHeader(),
-              Transform.translate(
-                offset: const Offset(0, -28),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildProfileCard(),
-                      const SizedBox(height: 25),
-                      _buildSectionTitle(
-                        'INFORMASI AKUN',
-                        'Informasi pribadi kamu',
+        body: RefreshIndicator(
+          onRefresh: controller.refreshProfile,
+          color: AppColors.homeBlue,
+          backgroundColor: Colors.white,
+          child: Obx(
+            () => Skeletonizer(
+              enabled: controller.isLoading.value,
+              effect: const ShimmerEffect(),
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(
+                  parent: ClampingScrollPhysics(),
+                ),
+                padding: const EdgeInsets.only(bottom: 125),
+                child: Column(
+                  children: [
+                    _buildHeader(),
+
+                    Transform.translate(
+                      offset: const Offset(0, -28),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Column(
+                          children: [
+                            _buildProfileCard(),
+                            _buildSectionTitle(
+                              'INFORMASI AKUN',
+                              'Informasi pribadi kamu',
+                            ),
+                            _buildAccountCard(),
+                            _buildSectionTitle(
+                              'PENGATURAN',
+                              'Kelola akun dan aplikasi',
+                            ),
+                            _buildSettingsCard(),
+                            _buildSectionTitle(
+                              'INFORMASI LAINNYA',
+                              'Kami siap membantu kamu',
+                            ),
+                            _buildHelpCard(),
+                            _buildLogoutButton(),
+                            _buildFooter(),
+                          ],
+                        ),
                       ),
-                      const SizedBox(height: 12),
-                      _buildAccountCard(),
-                      const SizedBox(height: 25),
-                      _buildSectionTitle(
-                        'PENGATURAN',
-                        'Kelola akun dan aplikasi',
-                      ),
-                      const SizedBox(height: 12),
-                      _buildSettingsCard(),
-                      const SizedBox(height: 25),
-                      _buildSectionTitle(
-                        'INFORMASI LAINNYA',
-                        'Kami siap membantu kamu',
-                      ),
-                      const SizedBox(height: 12),
-                      _buildHelpCard(),
-                      const SizedBox(height: 25),
-                      _buildLogoutButton(),
-                      const SizedBox(height: 25),
-                      _buildFooter(),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
-            ],
+            ),
           ),
         ),
       ),
@@ -365,28 +368,37 @@ class ProfileView extends GetView<ProfileController> {
   }
 
   Widget _buildSectionTitle(String title, String subtitle) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: jakarta.copyWith(
-            color: AppColors.slate500,
-            fontSize: 10,
-            fontWeight: FontWeight.w800,
-            letterSpacing: 1.2,
-          ),
+    return SizedBox(
+      width: double.infinity,
+      child: Padding(
+        padding: const EdgeInsets.only(top: 25, bottom: 13),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              textAlign: TextAlign.left,
+              style: jakarta.copyWith(
+                color: AppColors.slate500,
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 1.2,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              subtitle,
+              textAlign: TextAlign.left,
+              style: jakarta.copyWith(
+                color: AppColors.slate900,
+                fontSize: 15,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 4),
-        Text(
-          subtitle,
-          style: jakarta.copyWith(
-            color: AppColors.slate900,
-            fontSize: 15,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-      ],
+      ),
     );
   }
 
