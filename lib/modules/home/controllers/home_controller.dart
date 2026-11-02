@@ -42,11 +42,7 @@ typedef ConditionItem = ({
   bool primaryAction,
 });
 
-typedef ImpactStat = ({
-  String value,
-  String label,
-  Color color,
-});
+typedef ImpactStat = ({String value, String label, Color color});
 
 class HomeController extends GetxController {
   final isLoading = false.obs;
@@ -79,7 +75,7 @@ class HomeController extends GetxController {
       icon: Icons.alt_route_rounded,
       color: Color(0xFF059669),
       bg: Color(0xFFECFDF5),
-    )
+    ),
   ];
   // Kosong tanpa data dummy
   final RxList<ReportItem> recentReports = <ReportItem>[].obs;
@@ -87,38 +83,31 @@ class HomeController extends GetxController {
 
   // Statistik mulai dari 0
   final RxList<ImpactStat> impactStats = <ImpactStat>[
-    (
-      value: '0',
-      label: 'Laporan',
-      color: AppColors.homeBlue
-    ),
-    (
-      value: '0',
-      label: 'Terverifikasi',
-      color: AppColors.emerald600
-    ),
-    (
-      value: '0',
-      label: 'Diperbaiki',
-      color: AppColors.amber500
-    ),
+    (value: '0', label: 'Laporan', color: AppColors.homeBlue),
+    (value: '0', label: 'Terverifikasi', color: AppColors.emerald600),
+    (value: '0', label: 'Diperbaiki', color: AppColors.amber500),
   ].obs;
 
-   @override
+  @override
   void onInit() {
     super.onInit();
 
-    // Jika MapsController sudah ada, langsung pantau koordinat GPS dari MapsController
     if (Get.isRegistered<MapsController>()) {
       final mapsCtrl = Get.find<MapsController>();
 
-      // Jika di Maps sudah ada lokasi, langsung pakai
-      if (mapsCtrl.currentLocation.value != null) {
-        final loc = mapsCtrl.currentLocation.value!;
-        _loadFromCoordinates(loc.latitude, loc.longitude);
+      // Gunakan lokasi yang sudah tersedia dari MapsController
+      final currentLocation = mapsCtrl.currentLocation.value;
+
+      if (currentLocation != null) {
+        _loadFromCoordinates(
+          currentLocation.latitude,
+          currentLocation.longitude,
+        );
+      } else {
+        refreshHomeData();
       }
 
-      // Setiap kali Maps berhasil menemukan lokasi baru, Home otomatis ikut update
+      // Pantau perubahan lokasi GPS
       ever(mapsCtrl.currentLocation, (loc) {
         if (loc != null) {
           _loadFromCoordinates(loc.latitude, loc.longitude);
@@ -131,24 +120,45 @@ class HomeController extends GetxController {
 
   Future<void> _loadFromCoordinates(double lat, double lon) async {
     isLoading.value = true;
+
     try {
       await Future.wait([
         _fetchAddressFromCoordinates(lat, lon),
         _fetchRealtimeWeather(lat, lon),
       ]);
+
       _syncWithMapsReports();
+    } catch (e) {
+      debugPrint('Gagal memuat data Home: $e');
     } finally {
       isLoading.value = false;
     }
   }
 
   Future<void> refreshHomeData() async {
-    final position = await _determinePosition();
-    if (position == null) {
-      location.value = 'Izin lokasi belum aktif';
-      return;
+    try {
+      isLoading.value = true;
+
+      final position = await _determinePosition();
+
+      if (position == null) {
+        location.value = 'Izin lokasi belum aktif';
+
+        showAwesomeSnackbar(
+          title: 'Lokasi tidak tersedia',
+          message: 'Aktifkan GPS dan izin lokasi untuk memperbarui data.',
+          contentType: ContentType.warning,
+        );
+
+        return;
+      }
+
+      await _loadFromCoordinates(position.latitude, position.longitude);
+    } catch (e) {
+      debugPrint('Gagal refresh Home: $e');
+    } finally {
+      isLoading.value = false;
     }
-    await _loadFromCoordinates(position.latitude, position.longitude);
   }
 
   Future<Position?> _determinePosition() async {
@@ -165,9 +175,7 @@ class HomeController extends GetxController {
     }
 
     return Geolocator.getCurrentPosition(
-      locationSettings: const LocationSettings(
-        accuracy: LocationAccuracy.high,
-      ),
+      locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
     );
   }
 
@@ -192,12 +200,14 @@ class HomeController extends GetxController {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
         final addr = data['address'] as Map<String, dynamic>? ?? {};
 
-        final road = addr['road'] ??
+        final road =
+            addr['road'] ??
             addr['suburb'] ??
             addr['village'] ??
             addr['neighbourhood'] ??
             'Lokasi Anda';
-        final city = addr['city'] ??
+        final city =
+            addr['city'] ??
             addr['county'] ??
             addr['town'] ??
             addr['state'] ??
@@ -206,8 +216,7 @@ class HomeController extends GetxController {
         location.value = city.toString().isNotEmpty ? '$road, $city' : '$road';
       }
     } catch (_) {
-      location.value =
-          '${lat.toStringAsFixed(4)}, ${lon.toStringAsFixed(4)}';
+      location.value = '${lat.toStringAsFixed(4)}, ${lon.toStringAsFixed(4)}';
     }
   }
 
@@ -254,13 +263,11 @@ class HomeController extends GetxController {
   }
 
   ({String label, String roadDesc}) _mapWeatherCode(int code, bool isDay) {
-    final modeText =
-        isDay ? 'Mode Siang Aktif' : 'Mode Malam Aktif (PJU Dihitung)';
+    final modeText = isDay
+        ? 'Mode Siang Aktif'
+        : 'Mode Malam Aktif (PJU Dihitung)';
     if (code == 0) {
-      return (
-        label: 'Cerah',
-        roadDesc: 'Jalan Kering • $modeText',
-      );
+      return (label: 'Cerah', roadDesc: 'Jalan Kering • $modeText');
     } else if (code <= 3) {
       return (
         label: 'Cerah Berawan',

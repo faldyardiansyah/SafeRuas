@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
-
+import 'package:skeletonizer/skeletonizer.dart';
+import 'package:flutter_animate/flutter_animate.dart' hide ShimmerEffect;
 import 'package:saferuas/utils/app_colors.dart';
 import '../controllers/home_controller.dart';
 
@@ -14,27 +15,128 @@ class HomeView extends GetView<HomeController> {
       value: SystemUiOverlayStyle.light,
       child: ColoredBox(
         color: Colors.white,
-        child: SingleChildScrollView(
-          // 120 = ruang untuk floating navbar di MainView
-          padding: const EdgeInsets.only(bottom: 120),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+        child: Obx(() {
+          final isLoading = controller.isLoading.value;
+          return Column(
             children: [
-              _buildHeader(context),
-              const SizedBox(height: 24),
-              _buildQuickFeatures(),
-              const SizedBox(height: 24),
-              _buildRecentReports(),
-              const SizedBox(height: 24),
-              _buildConditions(),
-              const SizedBox(height: 24),
-              _buildImpact(),
+              Expanded(
+                child: Skeletonizer(
+                  enabled: isLoading,
+                  effect: ShimmerEffect(
+                    baseColor: AppColors.slate200,
+                    highlightColor: AppColors.slate100,
+                    duration: const Duration(milliseconds: 1400),
+                  ),
+                  child: RefreshIndicator(
+                    onRefresh: controller.refreshHomeData,
+                    color: AppColors.homeBlue,
+                    backgroundColor: Colors.white,
+                    displacement: 40,
+                    edgeOffset: 0,
+                    notificationPredicate: (notification) {
+                      return notification.depth == 0;
+                    },
+                    child: SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(
+                        parent: BouncingScrollPhysics(),
+                      ),
+                      padding: const EdgeInsets.only(bottom: 120),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildHeader(context)
+    .animate()
+    .fadeIn(
+      duration: 700.ms,
+      curve: Curves.easeOut,
+    )
+    .slideY(
+      begin: 0.12,
+      end: 0,
+      duration: 700.ms,
+      curve: Curves.easeOutCubic,
+    ),
+
+const SizedBox(height: 24),
+
+_buildQuickFeatures()
+    .animate()
+    .fadeIn(
+      delay: 100.ms,
+      duration: 600.ms,
+      curve: Curves.easeOut,
+    )
+    .slideY(
+      begin: 0.12,
+      end: 0,
+      delay: 100.ms,
+      duration: 600.ms,
+      curve: Curves.easeOutCubic,
+    ),
+
+const SizedBox(height: 24),
+
+_buildRecentReports()
+    .animate()
+    .fadeIn(
+      delay: 200.ms,
+      duration: 600.ms,
+      curve: Curves.easeOut,
+    )
+    .slideY(
+      begin: 0.12,
+      end: 0,
+      delay: 200.ms,
+      duration: 600.ms,
+      curve: Curves.easeOutCubic,
+    ),
+
+const SizedBox(height: 24),
+
+_buildConditions()
+    .animate()
+    .fadeIn(
+      delay: 300.ms,
+      duration: 600.ms,
+      curve: Curves.easeOut,
+    )
+    .slideY(
+      begin: 0.12,
+      end: 0,
+      delay: 300.ms,
+      duration: 600.ms,
+      curve: Curves.easeOutCubic,
+    ),
+
+const SizedBox(height: 24),
+
+_buildImpact()
+    .animate()
+    .fadeIn(
+      delay: 400.ms,
+      duration: 600.ms,
+      curve: Curves.easeOut,
+    )
+    .slideY(
+      begin: 0.12,
+      end: 0,
+      delay: 400.ms,
+      duration: 600.ms,
+      curve: Curves.easeOutCubic,
+    ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             ],
-          ),
-        ),
+          );
+        }),
       ),
     );
   }
+
   // ===== Helper =====
   TextStyle _jakarta(
     double size,
@@ -51,10 +153,12 @@ class HomeView extends GetView<HomeController> {
       letterSpacing: spacing,
     );
   }
+
   // Pengganti font Consolas dari Figma
   TextStyle _mono(double size, Color color) {
     return GoogleFonts.jetBrainsMono(fontSize: size, color: color, height: 1.5);
   }
+
   Widget _circle(double size, Color color) {
     return Container(
       width: size,
@@ -62,6 +166,7 @@ class HomeView extends GetView<HomeController> {
       decoration: BoxDecoration(color: color, shape: BoxShape.circle),
     );
   }
+
   Widget _sectionTitle(String title, {Widget? trailing}) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -70,7 +175,12 @@ class HomeView extends GetView<HomeController> {
           Expanded(
             child: Text(
               title,
-              style: _jakarta(17, FontWeight.w700, AppColors.slate900, spacing: -0.43),
+              style: _jakarta(
+                17,
+                FontWeight.w700,
+                AppColors.slate900,
+                spacing: -0.43,
+              ),
             ),
           ),
           ?trailing,
@@ -78,6 +188,7 @@ class HomeView extends GetView<HomeController> {
       ),
     );
   }
+
   Widget _pill({
     required Widget child,
     required Color color,
@@ -95,7 +206,8 @@ class HomeView extends GetView<HomeController> {
       child: child,
     );
   }
-    Widget _buildHeader(BuildContext context) {
+
+  Widget _buildHeader(BuildContext context) {
     final topInset = MediaQuery.of(context).padding.top;
 
     return Stack(
@@ -109,13 +221,25 @@ class HomeView extends GetView<HomeController> {
             gradient: AppColors.homeHeaderGradient,
             borderRadius: BorderRadius.vertical(bottom: Radius.circular(38)),
             boxShadow: [
-              BoxShadow(color: Color(0x2D1F5BFF), blurRadius: 28, offset: Offset(0, 10)),
+              BoxShadow(
+                color: Color(0x2D1F5BFF),
+                blurRadius: 28,
+                offset: Offset(0, 10),
+              ),
             ],
           ),
           child: Stack(
             children: [
-              Positioned(right: -64, top: -64, child: _circle(224, Colors.white.withValues(alpha: 0.15))),
-              Positioned(left: -40, top: topInset + 52, child: _circle(192, const Color(0x3367E8F9))),
+              Positioned(
+                right: -64,
+                top: -64,
+                child: _circle(224, Colors.white.withValues(alpha: 0.15)),
+              ),
+              Positioned(
+                left: -40,
+                top: topInset + 52,
+                child: _circle(192, const Color(0x3367E8F9)),
+              ),
             ],
           ),
         ),
@@ -149,7 +273,10 @@ class HomeView extends GetView<HomeController> {
                 children: [
                   Icon(Icons.location_on_outlined, size: 14, color: white85),
                   const SizedBox(width: 4),
-                  Text('Lokasi saat ini', style: _jakarta(11, FontWeight.w500, white85, height: 1.5)),
+                  Text(
+                    'Lokasi saat ini',
+                    style: _jakarta(11, FontWeight.w500, white85, height: 1.5),
+                  ),
                 ],
               ),
               Row(
@@ -160,12 +287,21 @@ class HomeView extends GetView<HomeController> {
                         controller.location.value,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: _jakarta(14, FontWeight.w700, Colors.white, spacing: -0.35),
+                        style: _jakarta(
+                          14,
+                          FontWeight.w700,
+                          Colors.white,
+                          spacing: -0.35,
+                        ),
                       ),
                     ),
                   ),
                   const SizedBox(width: 4),
-                  const Icon(Icons.keyboard_arrow_down_rounded, size: 16, color: Colors.white),
+                  const Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    size: 16,
+                    color: Colors.white,
+                  ),
                 ],
               ),
             ],
@@ -187,7 +323,9 @@ class HomeView extends GetView<HomeController> {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: Colors.white.withValues(alpha: 0.3),
-              boxShadow: const [BoxShadow(color: Color(0x99FFFFFF), spreadRadius: 2)],
+              boxShadow: const [
+                BoxShadow(color: Color(0x99FFFFFF), spreadRadius: 2),
+              ],
             ),
             child: ClipOval(
               child: Image.asset(
@@ -197,7 +335,9 @@ class HomeView extends GetView<HomeController> {
                 fit: BoxFit.cover,
                 errorBuilder: (_, _, _) => const ColoredBox(
                   color: Colors.white,
-                  child: Center(child: Icon(Icons.person, color: AppColors.homeBlue)),
+                  child: Center(
+                    child: Icon(Icons.person, color: AppColors.homeBlue),
+                  ),
                 ),
               ),
             ),
@@ -228,12 +368,22 @@ class HomeView extends GetView<HomeController> {
         shape: BoxShape.circle,
         color: Colors.white.withValues(alpha: 0.2),
         border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
-        boxShadow: const [BoxShadow(color: Color(0x0C000000), blurRadius: 2, offset: Offset(0, 1))],
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0C000000),
+            blurRadius: 2,
+            offset: Offset(0, 1),
+          ),
+        ],
       ),
       child: Stack(
         alignment: Alignment.center,
         children: [
-          const Icon(Icons.notifications_none_rounded, color: Colors.white, size: 20),
+          const Icon(
+            Icons.notifications_none_rounded,
+            color: Colors.white,
+            size: 20,
+          ),
           Positioned(
             top: 9,
             right: 10,
@@ -243,7 +393,9 @@ class HomeView extends GetView<HomeController> {
               decoration: const BoxDecoration(
                 color: AppColors.yellowAccent,
                 shape: BoxShape.circle,
-                boxShadow: [BoxShadow(color: AppColors.homeBlue, spreadRadius: 2)],
+                boxShadow: [
+                  BoxShadow(color: AppColors.homeBlue, spreadRadius: 2),
+                ],
               ),
             ),
           ),
@@ -262,13 +414,27 @@ class HomeView extends GetView<HomeController> {
         gradient: AppColors.homeWeatherGradient,
         borderRadius: BorderRadius.circular(24),
         boxShadow: const [
-          BoxShadow(color: Color(0x75000000), blurRadius: 11.1, offset: Offset(0, 4), spreadRadius: -2),
-          BoxShadow(color: Color(0x19000000), blurRadius: 25, offset: Offset(0, 20), spreadRadius: -5),
+          BoxShadow(
+            color: Color(0x75000000),
+            blurRadius: 11.1,
+            offset: Offset(0, 4),
+            spreadRadius: -2,
+          ),
+          BoxShadow(
+            color: Color(0x19000000),
+            blurRadius: 25,
+            offset: Offset(0, 20),
+            spreadRadius: -5,
+          ),
         ],
       ),
       child: Stack(
         children: [
-          Positioned(right: -40, top: -23, child: _circle(144, Colors.white.withValues(alpha: 0.15))),
+          Positioned(
+            right: -40,
+            top: -23,
+            child: _circle(144, Colors.white.withValues(alpha: 0.15)),
+          ),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
             child: Column(
@@ -285,12 +451,21 @@ class HomeView extends GetView<HomeController> {
                                 children: [
                                   TextSpan(
                                     text: controller.temperature.value,
-                                    style: _jakarta(24, FontWeight.w800, Colors.white, spacing: -0.8),
+                                    style: _jakarta(
+                                      24,
+                                      FontWeight.w800,
+                                      Colors.white,
+                                      spacing: -0.8,
+                                    ),
                                   ),
                                   const TextSpan(text: '  '),
                                   TextSpan(
                                     text: controller.weather.value,
-                                    style: _jakarta(14, FontWeight.w700, AppColors.yellowAccent),
+                                    style: _jakarta(
+                                      14,
+                                      FontWeight.w700,
+                                      AppColors.yellowAccent,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -300,16 +475,28 @@ class HomeView extends GetView<HomeController> {
                           Obx(
                             () => Text(
                               controller.weatherDesc.value,
-                              style: GoogleFonts.inter(fontSize: 10, color: white90, height: 1.5),
+                              style: GoogleFonts.inter(
+                                fontSize: 10,
+                                color: white90,
+                                height: 1.5,
+                              ),
                             ),
                           ),
                           const SizedBox(height: 8),
                           Obx(
                             () => Row(
                               children: [
-                                _weatherInfo(Icons.water_drop_outlined, const Color(0xFF67E8F9), controller.humidity.value),
+                                _weatherInfo(
+                                  Icons.water_drop_outlined,
+                                  const Color(0xFF67E8F9),
+                                  controller.humidity.value,
+                                ),
                                 const SizedBox(width: 12),
-                                _weatherInfo(Icons.air_rounded, AppColors.yellowAccent, controller.wind.value),
+                                _weatherInfo(
+                                  Icons.air_rounded,
+                                  AppColors.yellowAccent,
+                                  controller.wind.value,
+                                ),
                               ],
                             ),
                           ),
@@ -325,7 +512,11 @@ class HomeView extends GetView<HomeController> {
                 const SizedBox(height: 10),
                 Row(
                   children: [
-                    Icon(Icons.check_circle_outline_rounded, size: 13, color: white90),
+                    Icon(
+                      Icons.check_circle_outline_rounded,
+                      size: 13,
+                      color: white90,
+                    ),
                     const SizedBox(width: 4),
                     Expanded(
                       child: Text(
@@ -335,15 +526,27 @@ class HomeView extends GetView<HomeController> {
                     ),
                     _pill(
                       color: AppColors.emerald500,
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.shield_outlined, size: 12, color: Colors.white),
+                          const Icon(
+                            Icons.shield_outlined,
+                            size: 12,
+                            color: Colors.white,
+                          ),
                           const SizedBox(width: 4),
                           Text(
                             'Belum ada laporan',
-                            style: _jakarta(10, FontWeight.w700, Colors.white, spacing: 0.25),
+                            style: _jakarta(
+                              10,
+                              FontWeight.w700,
+                              Colors.white,
+                              spacing: 0.25,
+                            ),
                           ),
                         ],
                       ),
@@ -377,20 +580,33 @@ class HomeView extends GetView<HomeController> {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
         boxShadow: const [
-          BoxShadow(color: Color(0x19000000), blurRadius: 15, offset: Offset(0, 10), spreadRadius: -3),
+          BoxShadow(
+            color: Color(0x19000000),
+            blurRadius: 15,
+            offset: Offset(0, 10),
+            spreadRadius: -3,
+          ),
         ],
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.nights_stay_outlined, color: AppColors.yellowAccent, size: 34),
+          const Icon(
+            Icons.nights_stay_outlined,
+            color: AppColors.yellowAccent,
+            size: 34,
+          ),
           const SizedBox(height: 4),
-          Text('KONDISI BAIK', style: _jakarta(9, FontWeight.w700, Colors.white, spacing: -0.22)),
+          Text(
+            'KONDISI BAIK',
+            style: _jakarta(9, FontWeight.w700, Colors.white, spacing: -0.22),
+          ),
         ],
       ),
     );
   }
-    Widget _buildQuickFeatures() {
+
+  Widget _buildQuickFeatures() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -419,7 +635,11 @@ class HomeView extends GetView<HomeController> {
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(color: AppColors.slate100),
                         boxShadow: const [
-                          BoxShadow(color: Color(0x0C000000), blurRadius: 12, offset: Offset(0, 4)),
+                          BoxShadow(
+                            color: Color(0x0C000000),
+                            blurRadius: 12,
+                            offset: Offset(0, 4),
+                          ),
                         ],
                       ),
                       child: Container(
@@ -429,13 +649,22 @@ class HomeView extends GetView<HomeController> {
                           color: feature.bg,
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: Icon(feature.icon, color: feature.color, size: 22),
+                        child: Icon(
+                          feature.icon,
+                          color: feature.color,
+                          size: 22,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 6),
                     Text(
                       feature.label,
-                      style: _jakarta(11, FontWeight.w500, AppColors.slate700, height: 1.25),
+                      style: _jakarta(
+                        11,
+                        FontWeight.w500,
+                        AppColors.slate700,
+                        height: 1.25,
+                      ),
                     ),
                   ],
                 ),
@@ -446,7 +675,8 @@ class HomeView extends GetView<HomeController> {
       ],
     );
   }
-     Widget _buildRecentReports() {
+
+  Widget _buildRecentReports() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -520,7 +750,11 @@ class HomeView extends GetView<HomeController> {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: _jakarta(
-                      12, FontWeight.w700, AppColors.slate900, height: 1.33),
+                    12,
+                    FontWeight.w700,
+                    AppColors.slate900,
+                    height: 1.33,
+                  ),
                 ),
                 const SizedBox(height: 2),
                 Text(
@@ -528,7 +762,11 @@ class HomeView extends GetView<HomeController> {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: _jakarta(
-                      10, FontWeight.w400, AppColors.slate500, height: 1.5),
+                    10,
+                    FontWeight.w400,
+                    AppColors.slate500,
+                    height: 1.5,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 _pill(
@@ -537,7 +775,11 @@ class HomeView extends GetView<HomeController> {
                   child: Text(
                     report.status,
                     style: _jakarta(
-                        9, FontWeight.w600, report.statusColor, height: 1.5),
+                      9,
+                      FontWeight.w600,
+                      report.statusColor,
+                      height: 1.5,
+                    ),
                   ),
                 ),
               ],
@@ -548,9 +790,14 @@ class HomeView extends GetView<HomeController> {
             width: 32,
             height: 32,
             decoration: const BoxDecoration(
-                color: AppColors.slate100, shape: BoxShape.circle),
-            child: const Icon(Icons.sync_rounded,
-                size: 18, color: AppColors.homeBlue),
+              color: AppColors.slate100,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.sync_rounded,
+              size: 18,
+              color: AppColors.homeBlue,
+            ),
           ),
         ],
       ),
@@ -565,8 +812,10 @@ class HomeView extends GetView<HomeController> {
           'Kondisi Saat Ini',
           trailing: GestureDetector(
             onTap: controller.openMap,
-            child: Text('Lihat Peta',
-                style: _jakarta(12, FontWeight.w600, AppColors.homeBlue)),
+            child: Text(
+              'Lihat Peta',
+              style: _jakarta(12, FontWeight.w600, AppColors.homeBlue),
+            ),
           ),
         ),
         const SizedBox(height: 12),
@@ -601,7 +850,10 @@ class HomeView extends GetView<HomeController> {
         border: Border.all(color: AppColors.homeCardBorder),
         boxShadow: const [
           BoxShadow(
-              color: Color(0x0C000000), blurRadius: 16, offset: Offset(0, 4)),
+            color: Color(0x0C000000),
+            blurRadius: 16,
+            offset: Offset(0, 4),
+          ),
         ],
       ),
       child: Column(
@@ -614,8 +866,13 @@ class HomeView extends GetView<HomeController> {
                 radius: 6,
                 child: Text(
                   item.badge,
-                  style: _jakarta(9, FontWeight.w700, item.badgeColor,
-                      height: 1.5, spacing: 0.45),
+                  style: _jakarta(
+                    9,
+                    FontWeight.w700,
+                    item.badgeColor,
+                    height: 1.5,
+                    spacing: 0.45,
+                  ),
                 ),
               ),
               const Spacer(),
@@ -624,22 +881,33 @@ class HomeView extends GetView<HomeController> {
               else
                 _circle(6, item.trailingIconColor),
               const SizedBox(width: 4),
-              Text(item.trailingText,
-                  style:
-                      _jakarta(10.5, FontWeight.w600, item.trailingTextColor)),
+              Text(
+                item.trailingText,
+                style: _jakarta(10.5, FontWeight.w600, item.trailingTextColor),
+              ),
             ],
           ),
           const SizedBox(height: 8),
-          Text(item.title,
-              style: _jakarta(14, FontWeight.w700, AppColors.slate900,
-                  height: 1.43)),
+          Text(
+            item.title,
+            style: _jakarta(
+              14,
+              FontWeight.w700,
+              AppColors.slate900,
+              height: 1.43,
+            ),
+          ),
           const SizedBox(height: 2),
           Text(
             item.description,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style:
-                _jakarta(11, FontWeight.w400, AppColors.slate600, height: 1.38),
+            style: _jakarta(
+              11,
+              FontWeight.w400,
+              AppColors.slate600,
+              height: 1.38,
+            ),
           ),
           const Spacer(),
           Divider(height: 1, color: Colors.white.withValues(alpha: 0.7)),
@@ -677,10 +945,11 @@ class HomeView extends GetView<HomeController> {
         boxShadow: primary
             ? const [
                 BoxShadow(
-                    color: Color(0x3F1F5BFF),
-                    blurRadius: 6,
-                    offset: Offset(0, 4),
-                    spreadRadius: -1)
+                  color: Color(0x3F1F5BFF),
+                  blurRadius: 6,
+                  offset: Offset(0, 4),
+                  spreadRadius: -1,
+                ),
               ]
             : null,
       ),
@@ -690,13 +959,14 @@ class HomeView extends GetView<HomeController> {
           Text(
             item.actionLabel,
             style: _jakarta(
-                11, primary ? FontWeight.w700 : FontWeight.w600, foreground),
+              11,
+              primary ? FontWeight.w700 : FontWeight.w600,
+              foreground,
+            ),
           ),
           const SizedBox(width: 4),
           Icon(
-            primary
-                ? Icons.arrow_forward_rounded
-                : Icons.chevron_right_rounded,
+            primary ? Icons.arrow_forward_rounded : Icons.chevron_right_rounded,
             size: 13,
             color: foreground,
           ),
@@ -728,7 +998,7 @@ class HomeView extends GetView<HomeController> {
     );
   }
 
-    Widget _buildStatCard(ImpactStat stat) {
+  Widget _buildStatCard(ImpactStat stat) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -737,17 +1007,28 @@ class HomeView extends GetView<HomeController> {
         border: Border.all(color: AppColors.homeCardBorder),
         boxShadow: const [
           BoxShadow(
-              color: Color(0x07000000), blurRadius: 8, offset: Offset(0, 2)),
+            color: Color(0x07000000),
+            blurRadius: 8,
+            offset: Offset(0, 2),
+          ),
         ],
       ),
       child: Column(
         children: [
-          Text(stat.value,
-              style: _jakarta(20, FontWeight.w800, stat.color, height: 1.4)),
+          Text(
+            stat.value,
+            style: _jakarta(20, FontWeight.w800, stat.color, height: 1.4),
+          ),
           const SizedBox(height: 2),
-          Text(stat.label,
-              style: _jakarta(
-                  11, FontWeight.w600, AppColors.slate700, height: 1.25)),
+          Text(
+            stat.label,
+            style: _jakarta(
+              11,
+              FontWeight.w600,
+              AppColors.slate700,
+              height: 1.25,
+            ),
+          ),
         ],
       ),
     );

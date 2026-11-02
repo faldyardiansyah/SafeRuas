@@ -72,7 +72,7 @@ class ProfileView extends GetView<ProfileController> {
 
   Widget _buildHeader() {
     return Container(
-          height: 250,
+          height: 180,
           width: double.infinity,
           decoration: BoxDecoration(
             gradient: LinearGradient(
@@ -99,7 +99,7 @@ class ProfileView extends GetView<ProfileController> {
                 child: _circle(75, Colors.white.withValues(alpha: 0.07)),
               ),
               Positioned(
-                bottom: -75,
+                bottom: -30,
                 left: -35,
                 child: _circle(160, Colors.white.withValues(alpha: 0.06)),
               ),
@@ -160,22 +160,13 @@ class ProfileView extends GetView<ProfileController> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 35),
+                      const SizedBox(height: 10),
                       Text(
                         'Profil Pengguna',
                         style: jakarta.copyWith(
                           color: Colors.white,
                           fontSize: 25,
                           fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      const SizedBox(height: 7),
-                      Text(
-                        'Kelola informasi dan akun Saferuas kamu.',
-                        style: jakarta.copyWith(
-                          color: Colors.white.withValues(alpha: 0.85),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ],
