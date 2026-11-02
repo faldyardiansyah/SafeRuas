@@ -6,6 +6,7 @@ import 'package:saferuas/modules/profile/views/profile_view.dart';
 import 'package:saferuas/utils/app_colors.dart';
 import 'package:saferuas/modules/home/views/home_view.dart';
 import 'package:saferuas/modules/maps/views/maps_view.dart';
+import 'package:saferuas/modules/riwayat/views/riwayat_view.dart';
 
 import '../controllers/main_controller.dart';
 
@@ -16,11 +17,7 @@ class MainView extends GetView<MainController> {
   final List<Widget> pages = const [
     HomeView(),
     MapsView(),
-    _PlaceholderPage(
-      title: 'Riwayat',
-      description: 'Lihat riwayat laporan kerusakan jalan.',
-      icon: Icons.history_rounded,
-    ),
+    RiwayatView(),
     ProfileView(),
   ];
 
@@ -209,46 +206,3 @@ class _NavBarPainter extends CustomPainter {
   bool shouldRepaint(covariant _NavBarPainter old) => false;
 }
 
-class _PlaceholderPage extends StatelessWidget {
-  final String title;
-  final String description;
-  final IconData icon;
-
-  const _PlaceholderPage({
-    required this.title,
-    required this.description,
-    required this.icon,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      bottom: false,
-      child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 55, color: AppColors.primary),
-            const SizedBox(height: 15),
-            Text(
-              title,
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 23,
-                fontWeight: FontWeight.w800,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 7),
-            Text(
-              description,
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 12,
-                color: AppColors.textSecondary,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}

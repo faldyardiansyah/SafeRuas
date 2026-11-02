@@ -55,7 +55,7 @@ class HomeView extends GetView<HomeController> {
                                 curve: Curves.easeOutCubic,
                               )
                               .blur(
-                                begin: const Offset(0, 5),
+                                begin: const Offset(0, 1),
                                 end: Offset.zero,
                                 duration: 650.ms,
                               ),

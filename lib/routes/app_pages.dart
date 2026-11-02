@@ -12,6 +12,7 @@ import 'package:saferuas/modules/maps/controllers/maps_controller.dart';
 import 'package:saferuas/modules/main/views/main_view.dart';
 import 'package:saferuas/modules/main/controllers/main_controller.dart';
 import 'package:saferuas/modules/home/controllers/home_controller.dart';
+import 'package:saferuas/modules/riwayat/controllers/riwayat_controller.dart';
 import 'app_routes.dart';
 
 class AppPages {
@@ -54,6 +55,7 @@ class AppPages {
         Get.lazyPut<HomeController>(() => HomeController());
         Get.lazyPut<MapsController>(() => MapsController());
         Get.lazyPut<ProfileController>(() => ProfileController());
+        Get.lazyPut<RiwayatController>(() => RiwayatController());
       }),
     ),
   ];
