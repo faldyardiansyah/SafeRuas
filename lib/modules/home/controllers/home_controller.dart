@@ -46,6 +46,9 @@ typedef ImpactStat = ({String value, String label, Color color});
 
 class HomeController extends GetxController {
   final isLoading = false.obs;
+  final scrollController = ScrollController();
+  final isHeaderCollapsed = false.obs;
+  bool canPullToRefresh = false;
 
   // Data Real-Time Lokasi & Cuaca
   final location = 'Mendeteksi lokasi...'.obs;
@@ -309,5 +312,11 @@ class HomeController extends GetxController {
       message: 'Fitur $label belum tersedia.',
       contentType: ContentType.warning,
     );
+  }
+
+  @override
+  void onClose() {
+    scrollController.dispose();
+    super.onClose();
   }
 }

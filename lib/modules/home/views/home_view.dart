@@ -6,12 +6,15 @@ import 'package:skeletonizer/skeletonizer.dart';
 import 'package:flutter_animate/flutter_animate.dart' hide ShimmerEffect;
 import 'package:saferuas/utils/app_colors.dart';
 import '../controllers/home_controller.dart';
+import 'package:saferuas/utils/widgets/mega_mendung.dart';
 
 class HomeView extends GetView<HomeController> {
   const HomeView({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final topInset = MediaQuery.of(context).padding.top;
+
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light,
       child: ColoredBox(
@@ -19,105 +22,155 @@ class HomeView extends GetView<HomeController> {
         child: Obx(() {
           final isLoading = controller.isLoading.value;
 
-          return Column(
-            children: [
-              Expanded(
-                child: Skeletonizer(
-                  enabled: isLoading,
-                  effect: ShimmerEffect(
-                    baseColor: AppColors.slate200,
-                    highlightColor: AppColors.slate100,
-                    duration: const Duration(milliseconds: 1400),
-                  ),
+          return Skeletonizer(
+            enabled: isLoading,
+            effect: ShimmerEffect(
+              baseColor: AppColors.slate200,
+              highlightColor: AppColors.slate100,
+              duration: const Duration(milliseconds: 1400),
+            ),
+            child: Stack(
+              children: [
+                // 1. Konten scrollable di belakang header
+                Positioned.fill(
                   child: RefreshIndicator(
                     onRefresh: controller.refreshHomeData,
                     color: AppColors.homeBlue,
                     backgroundColor: Colors.white,
                     displacement: 40,
-                    edgeOffset: 0,
-                    notificationPredicate: (notification) =>
-                        notification.depth == 0,
-                    child: SingleChildScrollView(
-                      physics: const AlwaysScrollableScrollPhysics(
-                        parent: ClampingScrollPhysics(),
-                      ),
-                      padding: const EdgeInsets.only(bottom: 120),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildHeader(context)
-                              .animate()
-                              .fadeIn(duration: 650.ms, curve: Curves.easeOut)
-                              .slideY(
-                                begin: -0.06,
-                                end: 0,
-                                duration: 700.ms,
-                                curve: Curves.easeOutCubic,
-                              )
-                              .blur(
-                                begin: const Offset(0, 1),
-                                end: Offset.zero,
-                                duration: 650.ms,
+                    edgeOffset: topInset + 60,
+                    notificationPredicate: (notification) {
+                      if (notification.depth != 0) return false;
+                      if (notification is ScrollStartNotification) {
+                        controller.canPullToRefresh =
+                            !controller.isHeaderCollapsed.value &&
+                            notification.metrics.pixels <= 0;
+                      }
+                      if (notification is ScrollEndNotification) {
+                        final allowed = controller.canPullToRefresh;
+                        controller.canPullToRefresh = false;
+                        return allowed;
+                      }
+                      return controller.canPullToRefresh &&
+                          !controller.isHeaderCollapsed.value;
+                    },
+                    child: NotificationListener<ScrollNotification>(
+                      onNotification: (notification) {
+                        if (notification is ScrollUpdateNotification) {
+                          final delta = notification.scrollDelta ?? 0;
+                          if (delta > 2 && !controller.isHeaderCollapsed.value) {
+                            controller.isHeaderCollapsed.value = true;
+                          } else if (delta < -2 && controller.isHeaderCollapsed.value) {
+                            controller.isHeaderCollapsed.value = false;
+                          }
+                        } else if (notification is OverscrollNotification) {
+                          final overscroll = notification.overscroll;
+                          if (overscroll > 2 && !controller.isHeaderCollapsed.value) {
+                            controller.isHeaderCollapsed.value = true;
+                          } else if (overscroll < -2 && controller.isHeaderCollapsed.value) {
+                            controller.isHeaderCollapsed.value = false;
+                          }
+                        }
+                        return false;
+                      },
+                      child: SingleChildScrollView(
+                        controller: controller.scrollController,
+                        physics: const AlwaysScrollableScrollPhysics(
+                          parent: ClampingScrollPhysics(),
+                        ),
+                        padding: const EdgeInsets.only(bottom: 24),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Spacer dinamis: saat normal pas di bawah kartu cuaca, saat collapsed pas 16px di bawah header biru (tidak terpotong & tidak kejauhan)
+                            Obx(
+                              () => AnimatedContainer(
+                                duration: const Duration(milliseconds: 320),
+                                curve: Curves.easeInOutCubic,
+                                height: controller.isHeaderCollapsed.value
+                                    ? (topInset + 95)
+                                    : (topInset + 260),
                               ),
+                            ),
 
-                          const SizedBox(height: 24),
+                            _buildQuickFeatures()
+                                .animate()
+                                .fadeIn(delay: 100.ms, duration: 550.ms)
+                                .slideY(
+                                  begin: 0.08,
+                                  end: 0,
+                                  delay: 100.ms,
+                                  duration: 600.ms,
+                                  curve: Curves.easeOutCubic,
+                                ),
 
-                          _buildQuickFeatures()
-                              .animate()
-                              .fadeIn(delay: 100.ms, duration: 550.ms)
-                              .slideY(
-                                begin: 0.08,
-                                end: 0,
-                                delay: 100.ms,
-                                duration: 600.ms,
-                                curve: Curves.easeOutCubic,
-                              ),
+                            const SizedBox(height: 24),
 
-                          const SizedBox(height: 24),
+                            _buildRecentReports()
+                                .animate()
+                                .fadeIn(delay: 200.ms, duration: 550.ms)
+                                .slideY(
+                                  begin: 0.08,
+                                  end: 0,
+                                  delay: 200.ms,
+                                  duration: 600.ms,
+                                  curve: Curves.easeOutCubic,
+                                ),
 
-                          _buildRecentReports()
-                              .animate()
-                              .fadeIn(delay: 200.ms, duration: 550.ms)
-                              .slideY(
-                                begin: 0.08,
-                                end: 0,
-                                delay: 200.ms,
-                                duration: 600.ms,
-                                curve: Curves.easeOutCubic,
-                              ),
+                            const SizedBox(height: 24),
 
-                          const SizedBox(height: 24),
+                            _buildConditions()
+                                .animate()
+                                .fadeIn(delay: 300.ms, duration: 550.ms)
+                                .slideY(
+                                  begin: 0.08,
+                                  end: 0,
+                                  delay: 300.ms,
+                                  duration: 600.ms,
+                                  curve: Curves.easeOutCubic,
+                                ),
 
-                          _buildConditions()
-                              .animate()
-                              .fadeIn(delay: 300.ms, duration: 550.ms)
-                              .slideY(
-                                begin: 0.08,
-                                end: 0,
-                                delay: 300.ms,
-                                duration: 600.ms,
-                                curve: Curves.easeOutCubic,
-                              ),
+                            const SizedBox(height: 24),
 
-                          const SizedBox(height: 24),
-
-                          _buildImpact()
-                              .animate()
-                              .fadeIn(delay: 400.ms, duration: 550.ms)
-                              .slideY(
-                                begin: 0.08,
-                                end: 0,
-                                delay: 400.ms,
-                                duration: 600.ms,
-                                curve: Curves.easeOutCubic,
-                              ),
-                        ],
+                            _buildImpact()
+                                .animate()
+                                .fadeIn(delay: 400.ms, duration: 550.ms)
+                                .slideY(
+                                  begin: 0.08,
+                                  end: 0,
+                                  delay: 400.ms,
+                                  duration: 600.ms,
+                                  curve: Curves.easeOutCubic,
+                                ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-            ],
+
+                // 2. Header Pinned (menempel rapi di paling atas, bebas dari tabrakan status bar)
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: _buildHeader(context)
+                      .animate()
+                      .fadeIn(duration: 650.ms, curve: Curves.easeOut)
+                      .slideY(
+                        begin: -0.06,
+                        end: 0,
+                        duration: 700.ms,
+                        curve: Curves.easeOutCubic,
+                      )
+                      .blur(
+                        begin: const Offset(0, 1),
+                        end: Offset.zero,
+                        duration: 650.ms,
+                      ),
+                ),
+              ],
+            ),
           );
         }),
       ),
@@ -197,52 +250,102 @@ class HomeView extends GetView<HomeController> {
   Widget _buildHeader(BuildContext context) {
     final topInset = MediaQuery.of(context).padding.top;
 
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        // Background gradient biru dengan lengkung bawah
-        Container(
-          height: topInset + 150,
-          clipBehavior: Clip.antiAlias,
-          decoration: const BoxDecoration(
-            gradient: AppColors.homeHeaderGradient,
-            borderRadius: BorderRadius.vertical(bottom: Radius.circular(38)),
-            boxShadow: [
-              BoxShadow(
-                color: Color(0x2D1F5BFF),
-                blurRadius: 28,
-                offset: Offset(0, 10),
+    return Obx(() {
+      final isCollapsed = controller.isHeaderCollapsed.value;
+
+      return Stack(
+        clipBehavior: Clip.none,
+        children: [
+          // Background gradient biru dengan lengkung bawah (animasi mengecil langsung & halus)
+          Skeleton.keep(
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 320),
+              curve: Curves.easeInOutCubic,
+              height: isCollapsed ? (topInset + 74) : (topInset + 150),
+              clipBehavior: Clip.antiAlias,
+              decoration: const BoxDecoration(
+                gradient: AppColors.homeHeaderGradient,
+                borderRadius:
+                    BorderRadius.vertical(bottom: Radius.circular(38)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Color(0x2D1F5BFF),
+                    blurRadius: 28,
+                    offset: Offset(0, 10),
+                  ),
+                ],
               ),
-            ],
-          ),
-          child: Stack(
-            children: [
-              Positioned(
-                right: -64,
-                top: -64,
-                child: _circle(224, Colors.white.withValues(alpha: 0.15)),
+              child: Stack(
+                children: [
+                  Positioned(
+                    right: -135,
+                    top: topInset - 34,
+                    child: MegaMendung(
+                      width: 345,
+                      color: Colors.white.withValues(alpha: 0.24),
+                    ),
+                  ),
+                  Positioned(
+                    left: -160,
+                    top: topInset + 22,
+                    child: MegaMendung(
+                      width: 310,
+                      color: Colors.white.withValues(alpha: 0.20),
+                    ),
+                  ),
+                ],
               ),
-              Positioned(
-                left: -40,
-                top: topInset + 52,
-                child: _circle(192, const Color(0x3367E8F9)),
-              ),
-            ],
+            ),
           ),
-        ),
-        // Konten: top bar + kartu cuaca (kartu menumpuk di atas lengkungan)
-        Padding(
-          padding: EdgeInsets.fromLTRB(20, topInset + 12, 20, 0),
-          child: Column(
-            children: [
-              _buildTopBar(),
-              const SizedBox(height: 16),
-              _buildWeatherCard(),
-            ],
+          // Konten: top bar + kartu cuaca dengan animasi mengecil
+          Padding(
+            padding: EdgeInsets.fromLTRB(20, topInset + 12, 20, 0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildTopBar(),
+                ClipRect(
+                  child: AnimatedAlign(
+                    duration: const Duration(milliseconds: 320),
+                    curve: Curves.easeInOutCubic,
+                    alignment: Alignment.topCenter,
+                    heightFactor: isCollapsed ? 0.0 : 1.0,
+                    child: IgnorePointer(
+                      ignoring: isCollapsed,
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 16),
+                        child: AnimatedScale(
+                          scale: isCollapsed ? 0.82 : 1.0,
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeInOutCubic,
+                          child: AnimatedOpacity(
+                            opacity: isCollapsed ? 0.0 : 1.0,
+                            duration: const Duration(milliseconds: 260),
+                            curve: Curves.easeInOutCubic,
+                            child: GestureDetector(
+                              behavior: HitTestBehavior.translucent,
+                              onVerticalDragUpdate: (details) {
+                                final delta = details.primaryDelta ?? 0;
+                                if (delta < -2 && !controller.isHeaderCollapsed.value) {
+                                  controller.isHeaderCollapsed.value = true;
+                                } else if (delta > 2 && controller.isHeaderCollapsed.value) {
+                                  controller.isHeaderCollapsed.value = false;
+                                }
+                              },
+                              child: _buildWeatherCard(),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-      ],
-    );
+        ],
+      );
+    });
   }
 
   Widget _buildTopBar() {
@@ -349,17 +452,16 @@ class HomeView extends GetView<HomeController> {
 
   Widget _buildNotificationButton() {
     return Container(
-      width: 40,
-      height: 40,
-      decoration: BoxDecoration(
+      width: 42,
+      height: 42,
+      decoration: const BoxDecoration(
         shape: BoxShape.circle,
-        color: Colors.white.withValues(alpha: 0.2),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
-        boxShadow: const [
+        color: Color(0xFF678FF9),
+        boxShadow: [
           BoxShadow(
-            color: Color(0x0C000000),
-            blurRadius: 2,
-            offset: Offset(0, 1),
+            color: Color(0x3D000000),
+            blurRadius: 8,
+            offset: Offset(0, 3),
           ),
         ],
       ),
@@ -369,20 +471,21 @@ class HomeView extends GetView<HomeController> {
           const Icon(
             Icons.notifications_none_rounded,
             color: Colors.white,
-            size: 20,
+            size: 22,
           ),
           Positioned(
-            top: 9,
-            right: 10,
+            top: 7,
+            right: 7,
             child: Container(
-              width: 8,
-              height: 8,
-              decoration: const BoxDecoration(
+              width: 13,
+              height: 13,
+              decoration: BoxDecoration(
                 color: AppColors.yellowAccent,
                 shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(color: AppColors.homeBlue, spreadRadius: 2),
-                ],
+                border: Border.all(
+                  color: AppColors.homeBlue,
+                  width: 2.5,
+                ),
               ),
             ),
           ),

@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'package:flutter_animate/flutter_animate.dart' hide ShimmerEffect;
 import 'package:saferuas/utils/app_colors.dart';
+import 'package:saferuas/utils/widgets/mega_mendung.dart';
 import '../controllers/riwayat_controller.dart';
 
 class RiwayatView extends GetView<RiwayatController> {
@@ -97,14 +98,20 @@ class RiwayatView extends GetView<RiwayatController> {
             child: Stack(
               children: [
                 Positioned(
-                  top: -65,
-                  right: -35,
-                  child: _circle(190, Colors.white.withValues(alpha: 0.08)),
+                  top: topInset - 34,
+                  right: -135,
+                  child: MegaMendung(
+                    width: 345,
+                    color: Colors.white.withValues(alpha: 0.24),
+                  ),
                 ),
                 Positioned(
-                  bottom: -30,
-                  left: -35,
-                  child: _circle(160, Colors.white.withValues(alpha: 0.06)),
+                  left: -160,
+                  bottom: -15,
+                  child: MegaMendung(
+                    width: 310,
+                    color: Colors.white.withValues(alpha: 0.18),
+                  ),
                 ),
               ],
             ),
@@ -763,11 +770,4 @@ class RiwayatView extends GetView<RiwayatController> {
     );
   }
 
-  Widget _circle(double size, Color color) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-    );
-  }
 }

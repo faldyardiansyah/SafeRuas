@@ -6,6 +6,7 @@ import 'package:flutter_animate/flutter_animate.dart' hide ShimmerEffect;
 import 'package:saferuas/modules/profile/controllers/profile_controller.dart';
 import 'package:saferuas/utils/app_colors.dart';
 import 'package:skeletonizer/skeletonizer.dart';
+import 'package:saferuas/utils/widgets/mega_mendung.dart';
 
 class ProfileView extends GetView<ProfileController> {
   const ProfileView({super.key});
@@ -77,7 +78,7 @@ class ProfileView extends GetView<ProfileController> {
 
   Widget _buildHeader() {
     return Container(
-          height: 165,
+          height: 195,
           width: double.infinity,
           decoration: BoxDecoration(
             gradient: LinearGradient(
@@ -94,19 +95,20 @@ class ProfileView extends GetView<ProfileController> {
             clipBehavior: Clip.hardEdge,
             children: [
               Positioned(
-                top: -65,
-                right: -35,
-                child: _circle(190, Colors.white.withValues(alpha: 0.08)),
+                top: -6,
+                right: -135,
+                child: MegaMendung(
+                  width: 345,
+                  color: Colors.white.withValues(alpha: 0.24),
+                ),
               ),
               Positioned(
-                top: 100,
-                right: 85,
-                child: _circle(75, Colors.white.withValues(alpha: 0.07)),
-              ),
-              Positioned(
-                bottom: -30,
-                left: -35,
-                child: _circle(160, Colors.white.withValues(alpha: 0.06)),
+                bottom: -18,
+                left: -160,
+                child: MegaMendung(
+                  width: 310,
+                  color: Colors.white.withValues(alpha: 0.18),
+                ),
               ),
               SafeArea(
                 bottom: false,
@@ -798,11 +800,4 @@ class ProfileView extends GetView<ProfileController> {
     );
   }
 
-  Widget _circle(double size, Color color) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(shape: BoxShape.circle, color: color),
-    );
-  }
 }
