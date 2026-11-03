@@ -1036,6 +1036,7 @@ class MapsController extends GetxController {
     _buildRouteHazards();
   }
 
+
   Future<void> startNavigation() async {
     if (destination.value == null || routes.isEmpty) {
       Get.snackbar('Rute belum tersedia', 'Pilih tujuan terlebih dahulu.');

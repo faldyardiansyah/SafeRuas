@@ -43,6 +43,9 @@ dependencies:
   http: ^1.5.0
   flutter_tts: ^4.2.5
   skeletonizer: ^3.0.0
+  tflite_flutter: ^0.12.1
+  camera: ^0.12.2
+  image: ^4.0.21
 
 dev_dependencies:
   flutter_test:
@@ -67,6 +70,7 @@ flutter:
   assets:
     - assets/lotties/
     - assets/images/
+    - assets/model/
 
   # To add assets to your application, add an assets section, like this:
   # assets:
