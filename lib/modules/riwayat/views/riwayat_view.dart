@@ -127,10 +127,9 @@ class RiwayatView extends GetView<RiwayatController> {
                         color: Colors.white.withValues(alpha: 0.25),
                       ),
                     ),
-                    child: const Icon(
-                      Icons.history_rounded,
-                      color: Colors.white,
-                      size: 23,
+                    child: Image.asset(
+                      'assets/images/logo.png',
+                      fit: BoxFit.contain,
                     ),
                   ),
                   const SizedBox(width: 12),

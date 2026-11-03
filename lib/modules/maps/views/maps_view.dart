@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:latlong2/latlong.dart';
 import 'dart:math' as math;
 import 'package:saferuas/utils/app_colors.dart';
+import 'package:saferuas/utils/mapbox_config.dart';
 
 import '../controllers/maps_controller.dart';
 
@@ -19,7 +20,8 @@ class MapsView extends GetView<MapsController> {
       backgroundColor: const Color(0xFFF7F9FC),
       body: Stack(
         children: [
-          Positioned.fill(child: Obx(() => _buildMap())),
+          // FlutterMap dibuat sekali; hanya layer di dalamnya yang dibungkus Obx.
+          Positioned.fill(child: _buildMap()),
           Positioned(
             top: MediaQuery.of(context).padding.top + 12,
             left: 0,
@@ -66,82 +68,156 @@ class MapsView extends GetView<MapsController> {
         ),
       ),
       children: [
-        TileLayer(
-          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-          userAgentPackageName: 'com.saferuas.app',
+        Obx(
+          () => TileLayer(
+            urlTemplate: MapboxConfig.tileUrl(controller.isNightMode.value),
+            tileSize: 512,
+            zoomOffset: -1,
+            userAgentPackageName: 'com.saferuas.app',
+          ),
         ),
-        PolylineLayer(
-          polylines: [
-            if (controller.isNavigating.value &&
-                controller.routeToDraw.length > 1)
-              Polyline(
-                points: controller.routeToDraw,
-                strokeWidth: 7,
-                color: AppColors.primaryDark,
-              ),
-            if (!controller.isNavigating.value)
-              for (int i = 0; i < controller.routes.length; i++)
-                Polyline(
-                  points: controller.routes[i],
-                  strokeWidth: controller.selectedRoute.value == i ? 7 : 5,
-                  color: controller.getRouteColor(i),
-                ),
-          ],
-        ),
-        MarkerLayer(
-          markers: [
-            if (controller.currentLocation.value != null)
-              Marker(
-                point: controller.currentLocation.value!,
-                width: 48,
-                height: 48,
-                child: controller.isNavigating.value
-                    ? Transform.rotate(
-                        angle: controller.vehicleHeading.value * math.pi / 180,
-                        child: const Icon(
-                          Icons.navigation_rounded,
-                          color: AppColors.error,
-                          size: 43,
-                        ),
-                      )
-                    : Container(
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: AppColors.primary.withValues(alpha: .18),
-                        ),
-                        child: Center(
-                          child: Container(
-                            width: 17,
-                            height: 17,
-                            decoration: BoxDecoration(
-                              color: AppColors.primaryDark,
-                              shape: BoxShape.circle,
-                              border: Border.all(color: Colors.white, width: 3),
-                            ),
-                          ),
-                        ),
-                      ),
-              ),
-            if (controller.destination.value != null)
-              Marker(
-                point: controller.destination.value!,
-                width: 42,
-                height: 48,
-                child: const Icon(
-                  Icons.location_on_rounded,
-                  color: AppColors.dangerRed,
-                  size: 42,
-                ),
-              ),
-          ],
-        ),
+        Obx(() => PolylineLayer(polylines: _buildPolylines())),
+        Obx(() => MarkerLayer(markers: _buildHazardMarkers())),
+        Obx(() => MarkerLayer(markers: _buildPositionMarkers())),
         RichAttributionWidget(
           attributions: [
-            TextSourceAttribution('OpenStreetMap contributors', onTap: () {}),
+            TextSourceAttribution('© Mapbox', onTap: () {}),
+            TextSourceAttribution('© OpenStreetMap contributors', onTap: () {}),
           ],
         ),
       ],
     );
+  }
+
+  List<Polyline> _buildPolylines() {
+    final lines = <Polyline>[];
+
+    if (controller.isNavigating.value) {
+      final points = controller.routeToDraw;
+      if (points.length > 1) {
+        lines.add(
+          Polyline(
+            points: points,
+            strokeWidth: 7,
+            color: AppColors.primaryDark,
+          ),
+        );
+      }
+      return lines;
+    }
+
+    final selected = controller.selectedRoute.value;
+    for (int i = 0; i < controller.routes.length; i++) {
+      lines.add(
+        Polyline(
+          points: controller.routes[i],
+          strokeWidth: selected == i ? 7 : 5,
+          color: controller.getRouteColor(i),
+        ),
+      );
+    }
+    return lines;
+  }
+
+  List<Marker> _buildHazardMarkers() {
+    final markers = <Marker>[];
+
+    for (final hazard in controller.hazardReports.take(300)) {
+      final latitude = hazard['latitude'];
+      final longitude = hazard['longitude'];
+      if (latitude is! num || longitude is! num) continue;
+
+      final kind = controller.hazardKind(hazard);
+      if (kind == null) continue;
+
+      final isLighting = kind == 'lighting';
+
+      markers.add(
+        Marker(
+          point: LatLng(latitude.toDouble(), longitude.toDouble()),
+          width: 30,
+          height: 30,
+          child: Container(
+            decoration: BoxDecoration(
+              color: isLighting ? AppColors.textMuted : AppColors.dangerRed,
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white, width: 2),
+            ),
+            child: Icon(
+              isLighting
+                  ? Icons.lightbulb_outline_rounded
+                  : Icons.warning_amber_rounded,
+              color: Colors.white,
+              size: 16,
+            ),
+          ),
+        ),
+      );
+    }
+
+    return markers;
+  }
+
+  List<Marker> _buildPositionMarkers() {
+    final markers = <Marker>[];
+
+    final current = controller.currentLocation.value;
+    final navigating = controller.isNavigating.value;
+    final heading = controller.vehicleHeading.value;
+    final target = controller.destination.value;
+
+    if (current != null) {
+      markers.add(
+        Marker(
+          point: current,
+          width: 48,
+          height: 48,
+          child: navigating
+              ? Transform.rotate(
+                  angle: heading * math.pi / 180,
+                  child: const Icon(
+                    Icons.navigation_rounded,
+                    color: AppColors.error,
+                    size: 43,
+                  ),
+                )
+              : Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppColors.primary.withValues(alpha: .18),
+                  ),
+                  child: Center(
+                    child: Container(
+                      width: 17,
+                      height: 17,
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryDark,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 3),
+                      ),
+                    ),
+                  ),
+                ),
+        ),
+      );
+    }
+
+    if (target != null) {
+      markers.add(
+        Marker(
+          point: target,
+          width: 42,
+          height: 48,
+          child: const Icon(
+            Icons.location_on_rounded,
+            color: AppColors.dangerRed,
+            size: 42,
+          ),
+        ),
+      );
+    }
+
+    return markers;
   }
 
   Widget _buildSearchPanel() {
@@ -171,10 +247,9 @@ class MapsView extends GetView<MapsController> {
                   gradient: AppColors.primaryGradient,
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(
-                  Icons.route_rounded,
-                  color: Colors.white,
-                  size: 22,
+                child: Image.asset(
+                  'assets/images/logo.png',
+                  fit: BoxFit.contain,
                 ),
               ),
               const SizedBox(width: 10),

@@ -205,4 +205,3 @@ class _NavBarPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _NavBarPainter old) => false;
 }
-

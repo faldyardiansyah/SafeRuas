@@ -57,7 +57,9 @@ class ProfileView extends GetView<ProfileController> {
                               'Kami siap membantu kamu',
                             ),
                             _buildHelpCard(),
+                            const SizedBox(height: 15),
                             _buildLogoutButton(),
+                            const SizedBox(height: 15),
                             _buildFooter(),
                           ],
                         ),
@@ -75,7 +77,7 @@ class ProfileView extends GetView<ProfileController> {
 
   Widget _buildHeader() {
     return Container(
-          height: 195,
+          height: 165,
           width: double.infinity,
           decoration: BoxDecoration(
             gradient: LinearGradient(
@@ -125,11 +127,10 @@ class ProfileView extends GetView<ProfileController> {
                                 color: Colors.white.withValues(alpha: 0.25),
                               ),
                             ),
-                            child: const Icon(
-                              Icons.person_outline_rounded,
-                              color: Colors.white,
-                              size: 23,
-                            ),
+                            child: Image.asset(
+                              'assets/images/logo.png',
+                              fit: BoxFit.contain,
+                            )
                           ),
                           const SizedBox(width: 12),
                           Text(
