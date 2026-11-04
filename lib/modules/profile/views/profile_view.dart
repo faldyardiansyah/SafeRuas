@@ -78,7 +78,7 @@ class ProfileView extends GetView<ProfileController> {
 
   Widget _buildHeader() {
     return Container(
-          height: 195,
+          height: 200,
           width: double.infinity,
           decoration: BoxDecoration(
             gradient: LinearGradient(

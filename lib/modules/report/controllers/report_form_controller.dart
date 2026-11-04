@@ -1,4 +1,3 @@
-
 import 'dart:io';
 
 import 'package:camera/camera.dart';
@@ -16,10 +15,15 @@ class ReportFormController extends GetxController {
   void onInit() {
     super.onInit();
 
-    final XFile? image = Get.arguments as XFile?;
+    // Menerima arguments yang dikirim bisa berupa String (path) atau XFile (jaga-jaga)
+    final dynamic argument = Get.arguments;
 
-    if (image != null) {
-      selectedImage.value = File(image.path);
+    if (argument != null) {
+      if (argument is String) {
+        selectedImage.value = File(argument);
+      } else if (argument is XFile) {
+        selectedImage.value = File(argument.path);
+      }
     }
 
     getCurrentLocation();
@@ -30,16 +34,14 @@ class ReportFormController extends GetxController {
       isLoadingLocation.value = true;
       locationError.value = '';
 
-      final serviceEnabled =
-          await Geolocator.isLocationServiceEnabled();
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
 
       if (!serviceEnabled) {
         locationError.value = 'GPS belum diaktifkan.';
         return;
       }
 
-      LocationPermission permission =
-          await Geolocator.checkPermission();
+      LocationPermission permission = await Geolocator.checkPermission();
 
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();

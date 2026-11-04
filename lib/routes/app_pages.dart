@@ -13,6 +13,10 @@ import 'package:saferuas/modules/main/views/main_view.dart';
 import 'package:saferuas/modules/main/controllers/main_controller.dart';
 import 'package:saferuas/modules/home/controllers/home_controller.dart';
 import 'package:saferuas/modules/riwayat/controllers/riwayat_controller.dart';
+import 'package:saferuas/modules/report/controllers/report_camera_controller.dart';
+import 'package:saferuas/modules/report/controllers/report_form_controller.dart';
+import 'package:saferuas/modules/report/views/report_camera_view.dart';
+import 'package:saferuas/modules/report/views/report_form_view.dart'; // Tambahkan import ini jika belum ada
 import 'app_routes.dart';
 
 class AppPages {
@@ -47,8 +51,8 @@ class AppPages {
         Get.lazyPut<RegisterController>(() => RegisterController());
       }),
     ),
-        GetPage(
-      name: '/main',
+    GetPage(
+      name: AppRoutes.main,
       page: () => const MainView(),
       binding: BindingsBuilder(() {
         Get.lazyPut<MainController>(() => MainController());
@@ -56,6 +60,21 @@ class AppPages {
         Get.lazyPut<MapsController>(() => MapsController());
         Get.lazyPut<ProfileController>(() => ProfileController());
         Get.lazyPut<RiwayatController>(() => RiwayatController());
+      }),
+    ),
+    // Halaman Kamera Laporan
+    GetPage(
+      name: AppRoutes.reportCamera,
+      page: () => ReportCameraView(),
+      binding: BindingsBuilder(() {
+        Get.lazyPut<ReportCameraController>(() => ReportCameraController());
+      }),
+    ),
+    GetPage(
+      name: AppRoutes.reportForm,
+      page: () => ReportFormView(),
+      binding: BindingsBuilder(() {
+        Get.lazyPut<ReportFormController>(() => ReportFormController());
       }),
     ),
   ];

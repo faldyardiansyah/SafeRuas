@@ -1,6 +1,7 @@
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:saferuas/utils/app_colors.dart';
 
 import '../controllers/report_camera_controller.dart';
 
@@ -8,8 +9,6 @@ class ReportCameraView extends StatelessWidget {
   ReportCameraView({super.key});
 
   final ReportCameraController controller = Get.put(ReportCameraController());
-
-  static const Color primaryColor = Color(0xFF16A085);
 
   @override
   Widget build(BuildContext context) {
@@ -146,7 +145,7 @@ class ReportCameraView extends StatelessWidget {
                         ? null
                         : controller.takePicture,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: primaryColor,
+                      backgroundColor: AppColors.primary,
                       disabledBackgroundColor: Colors.grey.shade700,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(18),
@@ -205,7 +204,7 @@ class ReportCameraView extends StatelessWidget {
       statusIcon = Icons.hourglass_top_rounded;
       message = 'Memeriksa pencahayaan kamera...';
     } else if (!dark) {
-      statusColor = Colors.green;
+      statusColor = AppColors.primary;
       statusIcon = Icons.check_circle_outline_rounded;
       message = 'Pencahayaan cukup. Kamu bisa mengambil foto.';
     } else if (unavailable) {
@@ -231,7 +230,7 @@ class ReportCameraView extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(statusIcon, color: statusColor, size: 23),
+          Icon(statusIcon, color: AppColors.primary, size: 23),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
@@ -259,7 +258,7 @@ class ReportCameraView extends StatelessWidget {
         width: 44,
         height: 44,
         decoration: BoxDecoration(
-          color: active ? primaryColor : Colors.black.withOpacity(0.4),
+          color: active ? AppColors.primary : Colors.black.withOpacity(0.4),
           shape: BoxShape.circle,
         ),
         child: Icon(icon, color: Colors.white, size: 21),

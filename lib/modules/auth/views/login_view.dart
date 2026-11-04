@@ -3,7 +3,7 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:lottie/lottie.dart';
-
+import 'package:saferuas/utils/widgets/mega_mendung.dart';
 import 'package:saferuas/utils/app_colors.dart';
 import '../controllers/login_controller.dart';
 
@@ -299,87 +299,102 @@ class LoginView extends GetView<LoginController> {
   }
 
   Widget _buildHeader() {
-    return Container(
-      height: 200,
-      width: double.infinity,
-      margin: EdgeInsets.zero,
-      clipBehavior: Clip.hardEdge,
-      decoration: const BoxDecoration(
-        gradient: AppColors.primaryGradient,
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(32),
-          bottomRight: Radius.circular(32),
+  return Container(
+    height: 200,
+    width: double.infinity,
+    margin: EdgeInsets.zero,
+    clipBehavior: Clip.hardEdge,
+    decoration: const BoxDecoration(
+      gradient: AppColors.primaryGradient,
+      borderRadius: BorderRadius.only(
+        bottomLeft: Radius.circular(32),
+        bottomRight: Radius.circular(32),
+      ),
+    ),
+    child: Stack(
+      children: [
+        Positioned(
+          right: -40,
+          top: -20,
+          child:  MegaMendung(
+            width: 230,
+            color: Color(0x26FFFFFF), 
+          ).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.8, 0.8), end: const Offset(1, 1)),
         ),
-      ),
-      child: Stack(
-        children: [
-          // Hiasan lingkaran kecil
-          Positioned(
-            right: -25,
-            top: -35,
-            child: _circle(85, Colors.white.withValues(alpha: 0.08)),
+        Positioned(
+          left: -40,
+          bottom: -30,
+          child:  MegaMendung(
+            width: 230,
+            flip: true,
+            color: Color(0x1AFFFFFF), 
+          ).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.8, 0.8), end: const Offset(1, 1)),
+        ),
+
+        Positioned(
+          left : -40,
+          top: -20,
+          child:  MegaMendung(
+            width: 210,
+            color: Color(0x1AFFFFFF), 
+          ).animate().fadeIn(delay: 400.ms, duration: 600.ms),
+        ),
+
+        // Nama dan slogan Saferuas
+        Positioned(
+          top: 25,
+          left: 22,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 10),
+              Text(
+                    'Saferuas.',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 25,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.textWhite, 
+                      letterSpacing: -1,
+                    ),
+                  )
+                  .animate()
+                  .fadeIn(duration: 450.ms)
+                  .slideX(begin: -0.1, end: 0),
+
+              const SizedBox(height: 7),
+
+              Text(
+                'Perjalanan nyaman,\nlebih aman bersama kami.',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 12,
+                  height: 1.5,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.textWhite.withValues(alpha: 0.9), 
+                ),
+              ).animate().fadeIn(delay: 100.ms),
+            ],
           ),
-          Positioned(
-            left: -30,
-            bottom: -40,
-            child: _circle(75, Colors.white.withValues(alpha: 0.08)),
-          ),
+        ),
 
-          // Nama dan slogan Saferuas
-          Positioned(
-            top: 25,
-            left: 22,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 10),
-                Text(
-                      'Saferuas.',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 25,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.textWhite,
-                        letterSpacing: -1,
-                      ),
-                    )
-                    .animate()
-                    .fadeIn(duration: 450.ms)
-                    .slideX(begin: -0.1, end: 0),
-
-                const SizedBox(height: 7),
-
-                Text(
-                  'Perjalanan nyaman,\nlebih aman bersama kami.',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 12,
-                    height: 1.5,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.textWhite.withValues(alpha: 0.9),
-                  ),
-                ).animate().fadeIn(delay: 100.ms),
-              ],
+        // Animasi pengendara motor di kanan bawah
+        Positioned(
+          right: 5,
+          bottom: 0,
+          child: SizedBox(
+            width: 185,
+            height: 165,
+            child: Lottie.asset(
+              'assets/lotties/ride.json',
+              fit: BoxFit.contain,
+              alignment: Alignment.centerRight,
+              repeat: true,
             ),
-          ),
-
-          // Animasi pengendara motor di kanan bawah
-          Positioned(
-            right: 5,
-            bottom: 0,
-            child: SizedBox(
-              width: 185,
-              height: 165,
-              child: Lottie.asset(
-                'assets/lotties/ride.json',
-                fit: BoxFit.contain,
-                alignment: Alignment.centerRight,
-                repeat: true,
-              ),
-            ).animate().fadeIn(delay: 150.ms).slideX(begin: 0.15, end: 0),
-          ),
-        ],
-      ),
-    );
-  }
+          ).animate().fadeIn(delay: 150.ms).slideX(begin: 0.15, end: 0),
+        ),
+      ],
+    ),
+  );
+}
 
   // Lingkaran hiasan
   Widget _circle(double size, Color color) {

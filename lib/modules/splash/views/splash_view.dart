@@ -4,6 +4,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../utils/app_colors.dart';
+import '../../../utils/widgets/mega_mendung.dart';
 import '../controllers/splash_controller.dart';
 
 class SplashView extends GetView<SplashController> {
@@ -19,7 +20,72 @@ class SplashView extends GetView<SplashController> {
         child: SafeArea(
           child: Stack(
             children: [
-              // Cahaya background dengan animasi
+              Positioned(
+                left: -60,
+                top: -50,
+                child: MegaMendung(width: 260, color: const Color(0x26FFFFFF))
+                    .animate(onPlay: (c) => c.repeat(reverse: true))
+                    .fadeIn(duration: 1500.ms)
+                    .scale(
+                      begin: const Offset(0.95, 0.95),
+                      end: const Offset(1.08, 1.08),
+                      duration: 3000.ms,
+                      curve: Curves.easeInOut,
+                    ),
+              ),
+
+              Positioned(
+                right: -60,
+                top: -50,
+                child:
+                    MegaMendung(
+                          width: 260,
+                          flip: true,
+                          color: const Color(0x26FFFFFF),
+                        )
+                        .animate(onPlay: (c) => c.repeat(reverse: true))
+                        .fadeIn(duration: 1600.ms)
+                        .scale(
+                          begin: const Offset(0.95, 0.95),
+                          end: const Offset(1.08, 1.08),
+                          duration: 3200.ms,
+                          curve: Curves.easeInOut,
+                        ),
+              ),
+
+              Positioned(
+                left: -70,
+                bottom: -60,
+                child:
+                    MegaMendung(
+                          width: 280,
+                          flip: true,
+                          color: const Color(0x22FFFFFF),
+                        )
+                        .animate(onPlay: (c) => c.repeat(reverse: true))
+                        .fadeIn(duration: 1800.ms)
+                        .scale(
+                          begin: const Offset(1.0, 1.0),
+                          end: const Offset(1.10, 1.10),
+                          duration: 3500.ms,
+                          curve: Curves.easeInOut,
+                        ),
+              ),
+
+              Positioned(
+                right: -70,
+                bottom: -60,
+                child: MegaMendung(width: 280, color: const Color(0x22FFFFFF))
+                    .animate(onPlay: (c) => c.repeat(reverse: true))
+                    .fadeIn(duration: 1900.ms)
+                    .scale(
+                      begin: const Offset(1.0, 1.0),
+                      end: const Offset(1.10, 1.10),
+                      duration: 3600.ms,
+                      curve: Curves.easeInOut,
+                    ),
+              ),
+
               Positioned(
                 top: 100,
                 left: -70,
@@ -46,14 +112,12 @@ class SplashView extends GetView<SplashController> {
                     ),
               ),
 
-              // Identitas aplikasi
               Center(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 28),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Logo muncul dengan efek membesar
                       Container(
                             width: 112,
                             height: 112,
@@ -103,7 +167,6 @@ class SplashView extends GetView<SplashController> {
 
                       const SizedBox(height: 25),
 
-                      // Judul muncul setelah logo
                       const Text(
                             'SafeRuas',
                             style: TextStyle(
@@ -125,7 +188,6 @@ class SplashView extends GetView<SplashController> {
 
                       const SizedBox(height: 9),
 
-                      // Tagline tampil secara bertahap
                       const Text(
                             'Navigasi cerdas untuk perjalanan\n'
                             'yang lebih aman dan nyaman.',
@@ -149,7 +211,6 @@ class SplashView extends GetView<SplashController> {
 
                       const SizedBox(height: 20),
 
-                      // Aksen identitas dengan efek melebar
                       Container(
                             width: 34,
                             height: 4,
@@ -172,7 +233,6 @@ class SplashView extends GetView<SplashController> {
                 ),
               ),
 
-              // Loading di bagian bawah layar
               Positioned(
                 left: 22,
                 right: 22,
@@ -238,7 +298,6 @@ class SplashView extends GetView<SplashController> {
 
                       const SizedBox(height: 12),
 
-                      // Progress bar animasi
                       ClipRRect(
                         borderRadius: BorderRadius.circular(30),
                         child: TweenAnimationBuilder<double>(

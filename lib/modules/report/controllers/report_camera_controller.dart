@@ -1,10 +1,9 @@
-
 import 'package:camera/camera.dart';
 import 'package:get/get.dart';
+import 'package:saferuas/routes/app_routes.dart';
 
 class ReportCameraController extends GetxController {
-  final Rxn<CameraController> cameraController =
-      Rxn<CameraController>();
+  final Rxn<CameraController> cameraController = Rxn<CameraController>();
 
   final RxBool isCameraReady = false.obs;
   final RxBool isTakingPicture = false.obs;
@@ -45,8 +44,7 @@ class ReportCameraController extends GetxController {
       }
 
       final backCamera = cameras.firstWhere(
-        (camera) =>
-            camera.lensDirection == CameraLensDirection.back,
+        (camera) => camera.lensDirection == CameraLensDirection.back,
         orElse: () => cameras.first,
       );
 
@@ -67,14 +65,12 @@ class ReportCameraController extends GetxController {
 
       await controller.startImageStream(_checkBrightness);
     } catch (e) {
-      errorMessage.value =
-          'Gagal membuka kamera: ${e.toString()}';
+      errorMessage.value = 'Gagal membuka kamera: ${e.toString()}';
     }
   }
 
   void _checkBrightness(CameraImage image) {
-    if (image.planes.isEmpty ||
-        isTakingPicture.value) {
+    if (image.planes.isEmpty || isTakingPicture.value) {
       return;
     }
 
@@ -118,8 +114,7 @@ class ReportCameraController extends GetxController {
     }
 
     if (average >= _brightThreshold) {
-      if (isFlashOn.value && _flashCheckFrames <
-          _requiredFlashFrames) {
+      if (isFlashOn.value && _flashCheckFrames < _requiredFlashFrames) {
         _flashCheckFrames++;
         return;
       }
@@ -139,8 +134,7 @@ class ReportCameraController extends GetxController {
     try {
       final controller = cameraController.value;
 
-      if (controller == null ||
-          !controller.value.isInitialized) {
+      if (controller == null || !controller.value.isInitialized) {
         return;
       }
 
@@ -160,8 +154,7 @@ class ReportCameraController extends GetxController {
   Future<void> toggleFlash() async {
     final controller = cameraController.value;
 
-    if (controller == null ||
-        !controller.value.isInitialized) {
+    if (controller == null || !controller.value.isInitialized) {
       return;
     }
 
@@ -210,10 +203,9 @@ class ReportCameraController extends GetxController {
 
       final image = await controller.takePicture();
 
-      Get.back<XFile>(result: image);
+      Get.toNamed(AppRoutes.reportForm, arguments: image.path);
     } catch (e) {
-      errorMessage.value =
-          'Gagal mengambil foto: ${e.toString()}';
+      errorMessage.value = 'Gagal mengambil foto: ${e.toString()}';
 
       if (controller.value.isInitialized &&
           !controller.value.isStreamingImages) {

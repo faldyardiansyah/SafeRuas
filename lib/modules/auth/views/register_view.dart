@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-
+import 'package:saferuas/utils/widgets/mega_mendung.dart';
 import 'package:saferuas/utils/app_colors.dart';
 import '../controllers/register_controller.dart';
 
@@ -204,7 +204,6 @@ class RegisterView extends GetView<RegisterController> {
     return Container(
       height: 220,
       width: double.infinity,
-      clipBehavior: Clip.hardEdge,
       decoration: const BoxDecoration(
         gradient: AppColors.primaryGradient,
         borderRadius: BorderRadius.only(
@@ -212,83 +211,89 @@ class RegisterView extends GetView<RegisterController> {
           bottomRight: Radius.circular(32),
         ),
       ),
-      child: Stack(
-        children: [
-          Positioned(
-            right: -30,
-            top: -35,
-            child: Container(
-              width: 115,
-              height: 115,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.08),
-                shape: BoxShape.circle,
-              ),
+      child: ClipRRect(
+        borderRadius: const BorderRadius.only(
+          bottomLeft: Radius.circular(32),
+          bottomRight: Radius.circular(32),
+        ),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Positioned(
+              right: -20,
+              top: -20,
+              child: MegaMendung(width: 230, color: Color(0x33FFFFFF))
+                  .animate()
+                  .fadeIn(duration: 600.ms)
+                  .scale(
+                    begin: const Offset(0.8, 0.8),
+                    end: const Offset(1, 1),
+                  ),
             ),
-          ),
-          Positioned(
-            left: -35,
-            bottom: -45,
-            child: Container(
-              width: 110,
-              height: 110,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.08),
-                shape: BoxShape.circle,
-              ),
+            Positioned(
+              left: -20,
+              bottom: -20,
+              child: MegaMendung(
+                width: 230,
+                flip: true,
+                color: Color(0x26FFFFFF),
+              ).animate().fadeIn(delay: 200.ms, duration: 600.ms),
             ),
-          ),
-          Positioned(
-            top: 48,
-            left: 22,
-            child: GestureDetector(
-              onTap: Get.back,
-              child: Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.18),
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.25),
+            Positioned(
+              top: 48,
+              left: 22,
+              child: GestureDetector(
+                onTap: Get.back,
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: AppColors.textWhite.withValues(alpha: 0.18),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: AppColors.textWhite.withValues(alpha: 0.25),
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.arrow_back_rounded,
+                    color: AppColors.textWhite,
+                    size: 20,
                   ),
                 ),
-                child: const Icon(
-                  Icons.arrow_back_rounded,
-                  color: Colors.white,
-                  size: 20,
-                ),
+              ).animate().fadeIn(duration: 400.ms).slideX(begin: -0.2, end: 0),
+            ),
+            Positioned(
+              left: 24,
+              top: 112,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                        'Mulai Perjalananmu!',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 23,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.textWhite,
+                          letterSpacing: -0.7,
+                        ),
+                      )
+                      .animate()
+                      .fadeIn(duration: 450.ms)
+                      .slideX(begin: -0.1, end: 0),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Bergabunglah bersama Saferuas\nuntuk perjalanan yang lebih aman.',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 11,
+                      color: AppColors.textWhite.withValues(alpha: 0.9),
+                      height: 1.6,
+                    ),
+                  ).animate().fadeIn(delay: 100.ms, duration: 500.ms),
+                ],
               ),
             ),
-          ),
-          Positioned(
-            left: 24,
-            top: 112,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Mulai Perjalananmu!',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 23,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white,
-                    letterSpacing: -0.7,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Bergabunglah bersama Saferuas\nuntuk perjalanan yang lebih aman.',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 11,
-                    color: Colors.white.withValues(alpha: 0.9),
-                    height: 1.6,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     ).animate().fadeIn(duration: 500.ms);
   }
