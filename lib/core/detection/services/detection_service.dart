@@ -6,7 +6,7 @@ import '../models/detection_result.dart';
 
 class DetectionService {
   static const int inputSize = 800; // ini sesuai sama di trainignya
-  static const double confThreshold = 0.45; // batas minimal yakin AI
+  static const double confThreshold = 0.55; // batas minimal yakin AI
   static const double iouThreshold = 0.45;
   static const double minBoxRatio =  0.002; // kotak < 1% gambar dibuang
 
@@ -14,7 +14,7 @@ class DetectionService {
 
   Future<void> loadModel() async {
     if (_interpreter != null) return;
-    _interpreter = await Interpreter.fromAsset('assets/models/best.tflite');
+    _interpreter = await Interpreter.fromAsset('assets/model/best.tflite');
     print('Input shape: ${_interpreter!.getInputTensor(0).shape}');
     print('Output shape: ${_interpreter!.getOutputTensor(0).shape}');
   }
