@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:saferuas/utils/app_colors.dart';
 
 import '../controllers/report_camera_controller.dart';
+import '../models/report_category.dart';
 
 class ReportCameraView extends StatelessWidget {
   ReportCameraView({super.key});
@@ -17,6 +18,7 @@ class ReportCameraView extends StatelessWidget {
       body: SafeArea(
         child: Obx(() {
           final camera = controller.cameraController.value;
+          final isFacility = controller.isFacility;
 
           if (controller.errorMessage.value.isNotEmpty &&
               !controller.isCameraReady.value) {
@@ -64,10 +66,12 @@ class ReportCameraView extends StatelessWidget {
                       onTap: () => Get.back(),
                     ),
                     const SizedBox(width: 14),
-                    const Expanded(
+                    Expanded(
                       child: Text(
-                        'Laporkan Kerusakan',
-                        style: TextStyle(
+                        isFacility
+                            ? 'Laporkan Fasilitas Umum'
+                            : 'Laporkan Kerusakan',
+                        style: const TextStyle(
                           color: Colors.white,
                           fontSize: 19,
                           fontWeight: FontWeight.w600,
@@ -85,26 +89,55 @@ class ReportCameraView extends StatelessWidget {
                 ),
               ),
 
+              // Toggle kategori
               Positioned(
-                top: 105,
+                top: 76,
+                left: 24,
+                right: 24,
+                child: Row(
+                  children: [
+                    _categoryChip(
+                      'Jalan Rusak',
+                      Icons.add_road_rounded,
+                      ReportCategory.jalanRusak,
+                    ),
+                    const SizedBox(width: 10),
+                    _categoryChip(
+                      'Fasilitas Umum',
+                      Icons.lightbulb_outline_rounded,
+                      ReportCategory.fasilitasUmum,
+                    ),
+                  ],
+                ),
+              ),
+
+              Positioned(
+                top: 120,
                 left: 24,
                 right: 24,
                 child: Column(
-                  children: const [
+                  children: [
                     Text(
-                      'Deteksi Kerusakan Jalan',
+                      isFacility
+                          ? 'Deteksi Fasilitas Umum'
+                          : 'Deteksi Kerusakan Jalan',
                       textAlign: TextAlign.center,
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    SizedBox(height: 8),
+                    const SizedBox(height: 8),
                     Text(
-                      'Arahkan kamera ke bagian jalan yang rusak',
+                      isFacility
+                          ? 'Arahkan kamera ke lampu jalan, rambu, atau fasilitas yang bermasalah'
+                          : 'Arahkan kamera ke bagian jalan yang rusak',
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.white70, fontSize: 13),
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 13,
+                      ),
                     ),
                   ],
                 ),
@@ -138,12 +171,9 @@ class ReportCameraView extends StatelessWidget {
                 child: SizedBox(
                   height: 58,
                   child: ElevatedButton(
-                    onPressed:
-                        controller.isTakingPicture.value ||
-                            controller.isTooDark.value ||
-                            !controller.isBrightnessReady.value
-                        ? null
-                        : controller.takePicture,
+                    onPressed: controller.canShoot
+                        ? controller.takePicture
+                        : null,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
                       disabledBackgroundColor: Colors.grey.shade700,
@@ -189,11 +219,51 @@ class ReportCameraView extends StatelessWidget {
     );
   }
 
+  Widget _categoryChip(String label, IconData icon, ReportCategory value) {
+    final selected = controller.category.value == value;
+
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => controller.setCategory(value),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: selected
+                ? AppColors.primary
+                : Colors.black.withOpacity(0.45),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: selected
+                  ? AppColors.primary
+                  : Colors.white.withOpacity(0.35),
+            ),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 17, color: Colors.white),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildBrightnessStatus() {
     final ready = controller.isBrightnessReady.value;
     final dark = controller.isTooDark.value;
     final flash = controller.isFlashOn.value;
     final unavailable = controller.flashUnavailable.value;
+    final facility = controller.isFacility;
 
     Color statusColor;
     IconData statusIcon;
@@ -203,6 +273,12 @@ class ReportCameraView extends StatelessWidget {
       statusColor = Colors.orange;
       statusIcon = Icons.hourglass_top_rounded;
       message = 'Memeriksa pencahayaan kamera...';
+    } else if (facility && dark) {
+      statusColor = Colors.orange;
+      statusIcon = Icons.nights_stay_rounded;
+      message =
+          'Kondisi gelap. Foto fasilitas tetap bisa diambil. '
+          'Nyalakan flash jika objek dekat.';
     } else if (!dark) {
       statusColor = AppColors.primary;
       statusIcon = Icons.check_circle_outline_rounded;

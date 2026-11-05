@@ -34,6 +34,9 @@ migrate_working_dir/
 /coverage/
 
 # Environment / Secret Configuration
+.env
+.env.*
+!.env.example
 env.json
 
 # Symbolication related

@@ -2,7 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math' as math;
 
-import 'package:flutter/foundation.dart' show defaultTargetPlatform, TargetPlatform;
+import 'package:flutter/foundation.dart'
+    show defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
@@ -12,20 +13,12 @@ import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 import 'package:saferuas/utils/mapbox_config.dart';
 
-class VoiceInstruction {
-  final double distanceAlong;
-  final String text;
-
-  const VoiceInstruction(this.distanceAlong, this.text);
-}
-
 class NavigationStep {
   final String instruction;
   final double distance;
   final LatLng location;
   final String maneuverType;
   final String modifier;
-  List<VoiceInstruction> voice;
 
   NavigationStep({
     required this.instruction,
@@ -33,7 +26,6 @@ class NavigationStep {
     required this.location,
     required this.maneuverType,
     required this.modifier,
-    this.voice = const [],
   });
 }
 
@@ -95,7 +87,6 @@ class MapsController extends GetxController {
   final routeRiskLabels = <String>[].obs;
   final hasHazardData = false.obs;
 
-  // Navigasi aktif
   final isNavigating = false.obs;
   final currentStepIndex = 0.obs;
   final navigationSteps = <NavigationStep>[].obs;
@@ -107,8 +98,9 @@ class MapsController extends GetxController {
   final gpsAccuracy = 0.0.obs;
   final isSpeakingEnabled = true.obs;
   final FlutterTts _tts = FlutterTts();
-  final Set<int> _spokenApproachSteps = <int>{};
-  final Set<String> _spokenVoice = <String>{};
+
+  // Tahap pengumuman terakhir per langkah: 1 jauh, 2 menengah, 3 dekat
+  final Map<int, int> _announcedStage = {};
 
   double _routeTotalDistance = 0;
   double _routeTotalDuration = 0;
@@ -116,15 +108,12 @@ class MapsController extends GetxController {
   int _offRouteCount = 0;
   double _lastValidSpeed = 0;
 
-  // Jarak kumulatif sepanjang rute terpilih (meter), satu nilai per titik polyline.
   List<double> _cumDist = [];
-  // Posisi pengguna sepanjang rute (meter dari awal).
   double _alongMeters = 0;
-  // Indeks titik polyline untuk setiap langkah (lokasi belokan).
   List<int> _stepRouteIndex = [];
-  // Hazard yang berada di rute terpilih, diurutkan dari yang terdekat ke awal.
   final List<_RouteHazard> _routeHazards = [];
   DateTime _lastHazardSpeak = DateTime.fromMillisecondsSinceEpoch(0);
+  DateTime _lastTurnSpeak = DateTime.fromMillisecondsSinceEpoch(0);
 
   DateTime _lastReroute = DateTime.fromMillisecondsSinceEpoch(0);
   bool _isRerouting = false;
@@ -209,7 +198,7 @@ class MapsController extends GetxController {
     if (!MapboxConfig.hasToken) {
       Get.snackbar(
         'Token Mapbox belum diisi',
-        'Jalankan dengan --dart-define-from-file=env.json',
+        'Isi MAPBOX_TOKEN di file .env lalu jalankan ulang aplikasi.',
         duration: const Duration(seconds: 6),
       );
     }
@@ -351,8 +340,7 @@ class MapsController extends GetxController {
   }) async {
     if (!MapboxConfig.hasToken) {
       throw Exception(
-        'Token Mapbox belum terpasang. '
-        'Jalankan dengan --dart-define-from-file=env.json',
+        'Token Mapbox belum terpasang. Isi MAPBOX_TOKEN di file .env.',
       );
     }
 
@@ -368,8 +356,6 @@ class MapsController extends GetxController {
         'geometries': 'geojson',
         'overview': 'full',
         'steps': 'true',
-        'voice_instructions': 'true',
-        'voice_units': 'metric',
         'language': 'id',
         'access_token': MapboxConfig.token,
       },
@@ -378,7 +364,9 @@ class MapsController extends GetxController {
     final response = await http.get(uri).timeout(const Duration(seconds: 15));
 
     if (response.statusCode == 401) {
-      throw Exception('Token Mapbox ditolak (401). Periksa isi env.json.');
+      throw Exception(
+        'Token Mapbox ditolak (401). Periksa MAPBOX_TOKEN di .env.',
+      );
     }
     if (response.statusCode != 200) {
       throw Exception('Tidak dapat mengambil rute (${response.statusCode}).');
@@ -406,7 +394,6 @@ class MapsController extends GetxController {
       final duration = (route['duration'] as num).toDouble() / 60;
 
       final steps = <NavigationStep>[];
-      final rawVoices = <List<VoiceInstruction>>[];
       final legs = route['legs'] as List? ?? [];
 
       for (final leg in legs) {
@@ -436,32 +423,13 @@ class MapsController extends GetxController {
               modifier: modifier,
             ),
           );
-          rawVoices.add(_parseVoice(step['voiceInstructions']));
         }
-      }
-
-      // Pengumuman suara pada langkah i menunjuk ke belokan di langkah i+1,
-      // jadi digeser satu langkah agar cocok dengan currentStepIndex.
-      for (var i = 1; i < steps.length; i++) {
-        steps[i].voice = rawVoices[i - 1];
       }
 
       result.add(_ParsedRoute(points, distance, duration, steps));
     }
 
     return result;
-  }
-
-  List<VoiceInstruction> _parseVoice(dynamic raw) {
-    final list = raw as List? ?? [];
-    return list
-        .map<VoiceInstruction>(
-          (v) => VoiceInstruction(
-            (v['distanceAlongGeometry'] as num).toDouble(),
-            (v['announcement'] ?? '').toString(),
-          ),
-        )
-        .toList();
   }
 
   void _applyParsedRoutes(List<_ParsedRoute> parsed) {
@@ -1009,7 +977,6 @@ class MapsController extends GetxController {
     _routeHazards.sort((a, b) => a.along.compareTo(b.along));
   }
 
-  /// Menyiapkan semua data navigasi untuk rute terpilih.
   /// Dipakai saat mulai navigasi dan saat reroute.
   void _prepareNavigationRoute() {
     final route = routes[selectedRoute.value];
@@ -1017,8 +984,7 @@ class MapsController extends GetxController {
     navigationSteps.assignAll(_routeNavigationSteps[selectedRoute.value]);
     currentStepIndex.value = 0;
     distanceToNextStep.value = 0;
-    _spokenApproachSteps.clear();
-    _spokenVoice.clear();
+    _announcedStage.clear();
     _progressPointIndex = 0;
     _alongMeters = 0;
     _offRouteCount = 0;
@@ -1035,7 +1001,6 @@ class MapsController extends GetxController {
     _computeStepIndexes(route);
     _buildRouteHazards();
   }
-
 
   Future<void> startNavigation() async {
     if (destination.value == null || routes.isEmpty) {
@@ -1058,6 +1023,7 @@ class MapsController extends GetxController {
 
       _lastValidSpeed = 0;
       _lastHazardSpeak = DateTime.fromMillisecondsSinceEpoch(0);
+      _lastTurnSpeak = DateTime.fromMillisecondsSinceEpoch(0);
       _prepareNavigationRoute();
       isNavigating.value = true;
 
@@ -1066,7 +1032,7 @@ class MapsController extends GetxController {
         settings = AndroidSettings(
           accuracy: LocationAccuracy.bestForNavigation,
           distanceFilter: 0,
-          // Penting: tanpa ini, update GPS bisa hanya tiap beberapa detik.
+          // Tanpa ini, update GPS bisa hanya tiap beberapa detik.
           intervalDuration: const Duration(seconds: 1),
           forceLocationManager: false,
         );
@@ -1119,7 +1085,6 @@ class MapsController extends GetxController {
       _lastValidSpeed = position.speed;
     }
 
-    // Kamera mengikuti setiap fix GPS yang valid.
     if (mapReady) {
       try {
         mapController.move(
@@ -1137,7 +1102,7 @@ class MapsController extends GetxController {
     final remaining = math.max(0.0, _routeTotalDistance - _alongMeters);
     distanceToDestination.value = remaining;
 
-    // konservatif minimal 25 km/jam (asumsi aplikasi, bukan data lalu lintas).
+    // Estimasi waktu konservatif minimal 25 km/jam (asumsi aplikasi, bukan data lalu lintas).
     if (_routeTotalDistance > 0 && _routeTotalDuration > 0) {
       final ratio = (remaining / _routeTotalDistance)
           .clamp(0.0, 1.0)
@@ -1175,7 +1140,7 @@ class MapsController extends GetxController {
     }
   }
 
-  /// Mencocokkan posisi GPS ke segmen rute terdekat (bukan titik terdekat),
+  /// Mencocokkan posisi GPS ke segmen rute terdekat (bukan titik terdekat).
   bool _updateRouteProgress(LatLng location) {
     if (routes.isEmpty || selectedRoute.value >= routes.length) return true;
     final route = routes[selectedRoute.value];
@@ -1264,39 +1229,59 @@ class MapsController extends GetxController {
     }
   }
 
+  // Tiga tahap pengumuman, jaraknya melebar mengikuti kecepatan
   void _announceStep(int k, double remaining) {
     final step = navigationSteps[k];
+    final speed = _lastValidSpeed;
 
-    if (MapboxConfig.useMapboxVoice && step.voice.isNotEmpty) {
-      _speakVoice(k, remaining);
+    final farAt = math.max(400.0, speed * 30);
+    final midAt = math.max(150.0, speed * 12);
+    final nearAt = math.max(40.0, speed * 4);
+
+    final int stage;
+    if (remaining <= nearAt) {
+      stage = 3;
+    } else if (remaining <= midAt) {
+      stage = 2;
+    } else if (remaining <= farAt) {
+      stage = 1;
+    } else {
       return;
     }
 
-    // Cadangan: instruksi buatan sendiri, dipicu berdasarkan kecepatan.
-    final trigger = math.max(70.0, _lastValidSpeed * 8);
-    if (remaining <= trigger && _spokenApproachSteps.add(k)) {
-      speak(
-        remaining > 35
-            ? 'Dalam sekitar ${(remaining / 10).round() * 10} meter, '
-                  '${step.instruction}'
-            : step.instruction,
-      );
-    }
+    if (stage <= (_announcedStage[k] ?? 0)) return;
+    _announcedStage[k] = stage;
+    _lastTurnSpeak = DateTime.now();
+
+    speak(
+      stage == 3
+          ? _nearText(step)
+          : 'Dalam ${_spokenDistance(remaining)}, '
+                '${_lowerFirst(step.instruction)}',
+    );
   }
 
-  void _speakVoice(int index, double remaining) {
-    VoiceInstruction? pick;
-    for (final v in navigationSteps[index].voice) {
-      if (v.distanceAlong >= remaining &&
-          (pick == null || v.distanceAlong < pick.distanceAlong)) {
-        pick = v;
-      }
+  String _nearText(NavigationStep step) {
+    if (step.maneuverType == 'arrive') return 'Tujuan Anda sudah dekat';
+
+    const turning = {'turn', 'fork', 'end of road'};
+    if (turning.contains(step.maneuverType) && step.modifier.isNotEmpty) {
+      return '${_turnText(step.modifier)} sekarang';
     }
-    if (pick == null || pick.text.isEmpty) return;
-    if (_spokenVoice.add('$index:${pick.distanceAlong.round()}')) {
-      speak(pick.text);
-    }
+    return step.instruction;
   }
+
+  String _spokenDistance(double meters) {
+    if (meters >= 1000) {
+      return '${(meters / 1000).toStringAsFixed(1).replaceAll('.', ',')} kilometer';
+    }
+    final unit = meters >= 200 ? 50 : 10;
+    final rounded = math.max(10, (meters / unit).round() * unit);
+    return '$rounded meter';
+  }
+
+  String _lowerFirst(String text) =>
+      text.isEmpty ? text : text[0].toLowerCase() + text.substring(1);
 
   void _checkHazardWarnings() {
     if (_routeHazards.isEmpty) return;
@@ -1321,10 +1306,11 @@ class MapsController extends GetxController {
         continue;
       }
 
+      // Tahan peringatan supaya tidak memotong pengumuman belokan
       final now = DateTime.now();
       if (now.difference(_lastHazardSpeak).inSeconds < 6) break;
-      // Jangan menimpa pengumuman belokan yang sudah dekat.
-      if (distanceToNextStep.value < 70) break;
+      if (now.difference(_lastTurnSpeak).inSeconds < 5) break;
+      if (distanceToNextStep.value < 100) break;
 
       h.warned = true;
       _lastHazardSpeak = now;
@@ -1336,7 +1322,7 @@ class MapsController extends GetxController {
             ? 'Hati-hati, ada $label tepat di depan'
             : 'Hati-hati, ada $label sekitar $meters meter di depan',
       );
-      break; // satu peringatan per update GPS
+      break;
     }
   }
 
@@ -1353,7 +1339,7 @@ class MapsController extends GetxController {
     navigationSteps.clear();
     remainingRoute.clear();
     _routeHazards.clear();
-    _spokenVoice.clear();
+    _announcedStage.clear();
     currentStepIndex.value = 0;
     distanceToNextStep.value = 0;
     if (currentLocation.value != null && mapReady) {
@@ -1369,7 +1355,7 @@ class MapsController extends GetxController {
     navigationSteps.clear();
     remainingRoute.clear();
     _routeHazards.clear();
-    _spokenVoice.clear();
+    _announcedStage.clear();
     currentStepIndex.value = 0;
     speak('Anda telah tiba di tujuan.');
     Get.snackbar(

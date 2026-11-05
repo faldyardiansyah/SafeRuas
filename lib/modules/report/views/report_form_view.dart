@@ -8,6 +8,7 @@ import 'package:photo_view/photo_view.dart';
 
 import '../../../utils/app_colors.dart';
 import '../controllers/report_form_controller.dart';
+import '../models/report_category.dart';
 
 class ReportFormView extends StatelessWidget {
   ReportFormView({super.key});
@@ -44,12 +45,36 @@ class ReportFormView extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Foto Kerusakan Jalan',
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
-                color: AppColors.textPrimary,
+            // ===== Pilihan kategori =====
+            Obx(
+              () => Row(
+                children: [
+                  _categoryChip(
+                    'Jalan Rusak',
+                    Icons.add_road_rounded,
+                    ReportCategory.jalanRusak,
+                  ),
+                  const SizedBox(width: 10),
+                  _categoryChip(
+                    'Fasilitas Umum',
+                    Icons.lightbulb_outline_rounded,
+                    ReportCategory.fasilitasUmum,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            Obx(
+              () => Text(
+                controller.category.value == ReportCategory.jalanRusak
+                    ? 'Foto Kerusakan Jalan'
+                    : 'Foto Fasilitas Umum',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary,
+                ),
               ),
             ),
             const SizedBox(height: 6),
@@ -62,11 +87,13 @@ class ReportFormView extends StatelessWidget {
             ),
             const SizedBox(height: 14),
 
-            // Tampilan Foto + Kotak Deteksi YOLO (Bisa Diklik Masuk ke PhotoView)
+            // ===== Foto (+ kotak YOLO kalau jalan rusak) =====
             Obx(() {
               final File? image = controller.selectedImage.value;
               final annotated = controller.annotatedImageBytes.value;
-              final isDetecting = controller.isDetecting.value;
+              final isProcessing = controller.isProcessing;
+              final isRoad =
+                  controller.category.value == ReportCategory.jalanRusak;
 
               if (image == null) {
                 return Container(
@@ -100,7 +127,6 @@ class ReportFormView extends StatelessWidget {
 
               return Stack(
                 children: [
-                  // Area Foto yang Bisa Diklik untuk Membuka PhotoView Layar Penuh
                   GestureDetector(
                     onTap: () => _openPhotoViewer(context, image, annotated),
                     child: Hero(
@@ -118,7 +144,6 @@ class ReportFormView extends StatelessWidget {
                     ),
                   ),
 
-                  // Chip Petunjuk di Kiri Bawah Foto
                   Positioned(
                     bottom: 10,
                     left: 10,
@@ -156,8 +181,7 @@ class ReportFormView extends StatelessWidget {
                     ),
                   ),
 
-                  // Overlay Loading saat AI Memindai
-                  if (isDetecting)
+                  if (isProcessing)
                     Positioned.fill(
                       child: Container(
                         decoration: BoxDecoration(
@@ -172,7 +196,9 @@ class ReportFormView extends StatelessWidget {
                             ),
                             const SizedBox(height: 12),
                             Text(
-                              'AI sedang mendeteksi kerusakan jalan...',
+                              isRoad
+                                  ? 'AI sedang mendeteksi kerusakan jalan...'
+                                  : 'AI sedang menganalisis fasilitas...',
                               style: GoogleFonts.plusJakartaSans(
                                 color: AppColors.textWhite,
                                 fontSize: 13,
@@ -184,7 +210,6 @@ class ReportFormView extends StatelessWidget {
                       ),
                     ),
 
-                  // Tombol Hapus Foto
                   Positioned(
                     top: 10,
                     right: 10,
@@ -205,178 +230,17 @@ class ReportFormView extends StatelessWidget {
 
             const SizedBox(height: 16),
 
-            // Card Hasil Deteksi AI
+            // ===== Kartu hasil AI (YOLO atau Groq sesuai kategori) =====
             Obx(() {
-              final isDetecting = controller.isDetecting.value;
-              final detections = controller.detections;
-              final error = controller.detectionError.value;
-
-              if (isDetecting) return const SizedBox.shrink();
-
-              // Card Error Deteksi
-              if (error.isNotEmpty) {
-                return Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: AppColors.dangerRed.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(
-                      color: AppColors.dangerRed.withValues(alpha: 0.25),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.info_outline,
-                        color: AppColors.dangerRed,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          error,
-                          style: GoogleFonts.plusJakartaSans(
-                            color: AppColors.dangerRed,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                      TextButton(
-                        onPressed: controller.runDetection,
-                        child: Text(
-                          'Coba Lagi',
-                          style: GoogleFonts.plusJakartaSans(
-                            color: AppColors.primaryDark,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                );
+              if (controller.category.value == ReportCategory.fasilitasUmum) {
+                return _buildGroqCard();
               }
-
-              // Card Daftar Kerusakan Terdeteksi
-              if (detections.isNotEmpty) {
-                return Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: AppColors.homeCardTint.withValues(alpha: 0.35),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppColors.homeChipTint),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.analytics_rounded,
-                            color: AppColors.homeBlue,
-                            size: 18,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Terdeteksi ${detections.length} Titik Kerusakan:',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 13,
-                              color: AppColors.slate900,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: detections.map((d) {
-                          return Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.surface,
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: AppColors.homeChipTint),
-                              boxShadow: const [
-                                BoxShadow(
-                                  color: AppColors.shadow,
-                                  blurRadius: 4,
-                                  offset: Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(
-                                  Icons.warning_amber_rounded,
-                                  size: 15,
-                                  color: AppColors.amber500,
-                                ),
-                                const SizedBox(width: 6),
-                                Text(
-                                  '${d.displayName} (${d.confidencePercent})',
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w700,
-                                    color: AppColors.slate800,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-                        }).toList(),
-                      ),
-                    ],
-                  ),
-                );
-              }
-
-              // Card Kondisi Jalan Aman
-              if (controller.selectedImage.value != null) {
-                return Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: AppColors.emerald50,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(
-                      color: AppColors.emerald500.withValues(alpha: 0.3),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.check_circle_outline,
-                        color: AppColors.emerald600,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          'Kondisi jalan tampak aman / tidak terdeteksi kerusakan.',
-                          style: GoogleFonts.plusJakartaSans(
-                            color: AppColors.emerald700,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              }
-
-              return const SizedBox.shrink();
+              return _buildYoloCard();
             }),
 
             const SizedBox(height: 24),
 
-            // Bagian Lokasi Laporan
+            // ===== Lokasi =====
             Text(
               'Lokasi Laporan',
               style: GoogleFonts.plusJakartaSans(
@@ -395,7 +259,6 @@ class ReportFormView extends StatelessWidget {
             ),
             const SizedBox(height: 14),
 
-            // Card Koordinat GPS
             Obx(() {
               final position = controller.currentPosition.value;
               final isLoading = controller.isLoadingLocation.value;
@@ -529,7 +392,324 @@ class ReportFormView extends StatelessWidget {
     );
   }
 
-  /// Membuka Halaman Layar Penuh Menggunakan Package photo_view
+  // ===================== Kategori =====================
+  Widget _categoryChip(String label, IconData icon, ReportCategory value) {
+    final selected = controller.category.value == value;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => controller.setCategory(value),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: selected ? AppColors.homeBlue : AppColors.surface,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: selected ? AppColors.homeBlue : AppColors.slate200,
+            ),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                size: 18,
+                color: selected ? Colors.white : AppColors.slate700,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: selected ? Colors.white : AppColors.slate700,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ===================== Kartu YOLO =====================
+  Widget _buildYoloCard() {
+    final isDetecting = controller.isDetecting.value;
+    final detections = controller.detections;
+    final error = controller.detectionError.value;
+
+    if (isDetecting) return const SizedBox.shrink();
+
+    if (error.isNotEmpty) {
+      return _errorCard(error, controller.runDetection);
+    }
+
+    if (detections.isNotEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.homeCardTint.withValues(alpha: 0.35),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.homeChipTint),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(
+                  Icons.analytics_rounded,
+                  color: AppColors.homeBlue,
+                  size: 18,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Terdeteksi ${detections.length} Titik Kerusakan:',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                    color: AppColors.slate900,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: detections.map((d) {
+                return Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: AppColors.homeChipTint),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: AppColors.shadow,
+                        blurRadius: 4,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.warning_amber_rounded,
+                        size: 15,
+                        color: AppColors.amber500,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        '${d.displayName} (${d.confidencePercent})',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.slate800,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (controller.selectedImage.value != null) {
+      return Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: AppColors.emerald50,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: AppColors.emerald500.withValues(alpha: 0.3),
+          ),
+        ),
+        child: Row(
+          children: [
+            const Icon(
+              Icons.check_circle_outline,
+              color: AppColors.emerald600,
+              size: 20,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Kondisi jalan tampak aman / tidak terdeteksi kerusakan.',
+                style: GoogleFonts.plusJakartaSans(
+                  color: AppColors.emerald700,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return const SizedBox.shrink();
+  }
+
+  // ===================== Kartu Groq =====================
+  Widget _buildGroqCard() {
+    if (controller.isAnalyzingGroq.value) return const SizedBox.shrink();
+
+    final error = controller.groqError.value;
+    final result = controller.groqResult.value;
+
+    if (error.isNotEmpty) {
+      return _errorCard(error, controller.runGroqAnalysis);
+    }
+
+    if (result == null) return const SizedBox.shrink();
+
+    if (!result.isPublicFacility) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: AppColors.slate100,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.slate200),
+        ),
+        child: Text(
+          'Foto tidak menampilkan fasilitas umum. Coba ambil ulang atau ganti kategori.',
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 12,
+            color: AppColors.slate700,
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.homeCardTint.withValues(alpha: 0.35),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.homeChipTint),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.auto_awesome_rounded,
+                color: AppColors.homeBlue,
+                size: 18,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  result.facilityType,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                    color: AppColors.slate900,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _infoChip('Kondisi: ${result.condition}'),
+              _infoChip('Tingkat: ${result.severity}'),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            result.description,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 12,
+              height: 1.5,
+              color: AppColors.slate800,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Saran: ${result.suggestion}',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 11,
+              height: 1.5,
+              color: AppColors.slate500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _infoChip(String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.homeChipTint),
+      ),
+      child: Text(
+        text,
+        style: GoogleFonts.plusJakartaSans(
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+          color: AppColors.slate800,
+        ),
+      ),
+    );
+  }
+
+  Widget _errorCard(String message, VoidCallback onRetry) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.dangerRed.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.dangerRed.withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.info_outline, color: AppColors.dangerRed, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              message,
+              style: GoogleFonts.plusJakartaSans(
+                color: AppColors.dangerRed,
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: onRetry,
+            child: Text(
+              'Coba Lagi',
+              style: GoogleFonts.plusJakartaSans(
+                color: AppColors.primaryDark,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ===================== Photo viewer =====================
   void _openPhotoViewer(
     BuildContext context,
     File imageFile,
@@ -550,7 +730,7 @@ class ReportFormView extends StatelessWidget {
             onPressed: () => Get.back(),
           ),
           title: Text(
-            'Detail Foto Kerusakan',
+            'Detail Foto',
             style: GoogleFonts.plusJakartaSans(
               color: Colors.white,
               fontSize: 16,

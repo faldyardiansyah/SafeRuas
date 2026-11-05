@@ -2,8 +2,12 @@ import 'package:camera/camera.dart';
 import 'package:get/get.dart';
 import 'package:saferuas/routes/app_routes.dart';
 
+import '../models/report_category.dart';
+
 class ReportCameraController extends GetxController {
   final Rxn<CameraController> cameraController = Rxn<CameraController>();
+
+  final Rx<ReportCategory> category = ReportCategory.jalanRusak.obs;
 
   final RxBool isCameraReady = false.obs;
   final RxBool isTakingPicture = false.obs;
@@ -19,9 +23,40 @@ class ReportCameraController extends GetxController {
   bool _isCheckingFlash = false;
   int _flashCheckFrames = 0;
 
+  bool _flashIsAuto = false;
+  int _autoOffBrightFrames = 0;
+  DateTime? _lastAutoOffAt;
+  bool _autoOffLocked = false;
+
   static const double _darkThreshold = 50;
   static const double _brightThreshold = 70;
   static const int _requiredFlashFrames = 8;
+
+  // Atur dua angka ini kalau flash terlalu lama mati atau sering nyala-mati
+  static const double _autoOffThreshold = 130;
+  static const int _autoOffRequiredFrames = 15;
+  static const Duration _autoOffRetryWindow = Duration(seconds: 4);
+
+  bool get isFacility => category.value == ReportCategory.fasilitasUmum;
+
+  // Fasilitas umum boleh gelap karena lampu jalan mati difoto malam hari
+  bool get canShoot {
+    if (!isCameraReady.value || isTakingPicture.value) return false;
+    if (isFacility) return true;
+    return !isTooDark.value && isBrightnessReady.value;
+  }
+
+  void setCategory(ReportCategory value) {
+    if (category.value == value) return;
+    category.value = value;
+
+    _autoOffLocked = false;
+    _lastAutoOffAt = null;
+
+    if (isFacility && _flashIsAuto && isFlashOn.value) {
+      _disableAutoFlash();
+    }
+  }
 
   @override
   void onInit() {
@@ -61,6 +96,7 @@ class ReportCameraController extends GetxController {
       await controller.setFlashMode(FlashMode.off);
 
       isFlashOn.value = false;
+      _flashIsAuto = false;
       isCameraReady.value = true;
 
       await controller.startImageStream(_checkBrightness);
@@ -94,11 +130,28 @@ class ReportCameraController extends GetxController {
 
     brightness.value = average / 255;
 
+    if (isFacility) {
+      isTooDark.value = average < _darkThreshold;
+      isBrightnessReady.value = true;
+      return;
+    }
+
+    if (average < _autoOffThreshold) {
+      _autoOffBrightFrames = 0;
+    }
+
     if (average < _darkThreshold) {
       isTooDark.value = true;
       isBrightnessReady.value = true;
 
       if (!isFlashOn.value && !_isCheckingFlash) {
+        // Gelap lagi tak lama setelah flash dimatikan = terangnya dari flash,
+        // kunci supaya flash tidak berkedip nyala-mati
+        final last = _lastAutoOffAt;
+        if (last != null &&
+            DateTime.now().difference(last) < _autoOffRetryWindow) {
+          _autoOffLocked = true;
+        }
         _enableAutoFlash();
       }
 
@@ -123,6 +176,17 @@ class ReportCameraController extends GetxController {
       isBrightnessReady.value = true;
       flashUnavailable.value = false;
       isAutoFlash.value = false;
+
+      if (_flashIsAuto &&
+          isFlashOn.value &&
+          !_autoOffLocked &&
+          average >= _autoOffThreshold) {
+        _autoOffBrightFrames++;
+
+        if (_autoOffBrightFrames >= _autoOffRequiredFrames) {
+          _disableAutoFlash();
+        }
+      }
     }
   }
 
@@ -142,7 +206,9 @@ class ReportCameraController extends GetxController {
 
       isFlashOn.value = true;
       isAutoFlash.value = true;
+      _flashIsAuto = true;
       _flashCheckFrames = 0;
+      _autoOffBrightFrames = 0;
     } catch (e) {
       flashUnavailable.value = true;
       isTooDark.value = true;
@@ -151,12 +217,45 @@ class ReportCameraController extends GetxController {
     }
   }
 
+  Future<void> _disableAutoFlash() async {
+    if (_isCheckingFlash) return;
+
+    _isCheckingFlash = true;
+
+    try {
+      final controller = cameraController.value;
+
+      if (controller == null || !controller.value.isInitialized) {
+        return;
+      }
+
+      await controller.setFlashMode(FlashMode.off);
+
+      isFlashOn.value = false;
+      isAutoFlash.value = false;
+      _flashIsAuto = false;
+      _flashCheckFrames = 0;
+      _autoOffBrightFrames = 0;
+      _lastAutoOffAt = DateTime.now();
+    } catch (e) {
+      // Gagal mematikan: biarkan flash tetap menyala
+    } finally {
+      _isCheckingFlash = false;
+    }
+  }
+
+  // Tombol manual tidak ikut aturan flash otomatis
   Future<void> toggleFlash() async {
     final controller = cameraController.value;
 
     if (controller == null || !controller.value.isInitialized) {
       return;
     }
+
+    _flashIsAuto = false;
+    _autoOffLocked = false;
+    _lastAutoOffAt = null;
+    _autoOffBrightFrames = 0;
 
     try {
       if (isFlashOn.value) {
@@ -186,11 +285,7 @@ class ReportCameraController extends GetxController {
   Future<void> takePicture() async {
     final controller = cameraController.value;
 
-    if (controller == null ||
-        !controller.value.isInitialized ||
-        isTakingPicture.value ||
-        isTooDark.value ||
-        !isBrightnessReady.value) {
+    if (controller == null || !controller.value.isInitialized || !canShoot) {
       return;
     }
 
@@ -203,7 +298,19 @@ class ReportCameraController extends GetxController {
 
       final image = await controller.takePicture();
 
-      Get.toNamed(AppRoutes.reportForm, arguments: image.path);
+      isTakingPicture.value = false;
+
+      // Stream brightness dinyalakan lagi setelah user kembali dari form
+      await Get.toNamed(
+        AppRoutes.reportForm,
+        arguments: {'path': image.path, 'category': category.value},
+      );
+
+      if (!isClosed &&
+          controller.value.isInitialized &&
+          !controller.value.isStreamingImages) {
+        await controller.startImageStream(_checkBrightness);
+      }
     } catch (e) {
       errorMessage.value = 'Gagal mengambil foto: ${e.toString()}';
 

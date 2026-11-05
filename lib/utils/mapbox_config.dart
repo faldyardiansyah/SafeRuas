@@ -1,6 +1,8 @@
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 // Konfigurasi Mapbox.
 class MapboxConfig {
-  static const String token = String.fromEnvironment('MAPBOX_TOKEN');
+  static String get token => dotenv.env['MAPBOX_TOKEN'] ?? '';
 
   static bool get hasToken => token.isNotEmpty;
 
