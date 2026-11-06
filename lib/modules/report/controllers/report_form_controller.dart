@@ -8,8 +8,8 @@ import 'package:get/get.dart';
 
 import '../../../core/detection/models/detection_result.dart';
 import '../../../core/detection/services/detection_service.dart';
-import '../../../core/detection/groq/services/groq_service.dart';
-import '../../../core/detection/groq/models/groq_analysis_result.dart';
+import '../../../core/detection/deepseek/services/deepseek_service.dart';
+import '../../../core/detection/deepseek/models/deepseek_analysis_result.dart';
 import '../models/report_category.dart';
 
 class ReportFormController extends GetxController {

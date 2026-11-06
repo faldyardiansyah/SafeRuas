@@ -1,12 +1,13 @@
 import 'dart:convert';
-import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:image/image.dart' as img;
 
-import '../models/groq_analysis_result.dart';
+import '../models/deepseek_analysis_result.dart';
+
+typedef DeepSeekService = GroqService;
 
 class GroqService {
   /// Mengambil API Key DeepSeek dari .env (atau fallback ke GROQ_API_KEY jika masih pakai nama lama)
@@ -16,14 +17,14 @@ class GroqService {
 
   static String get _model {
     final fromEnv = (dotenv.env['DEEPSEEK_MODEL'] ?? '').trim();
-    return fromEnv.isNotEmpty ? fromEnv : 'deepseek-chat';
+    return fromEnv.isNotEmpty ? fromEnv : 'deepseek-flash';
   }
 
   static const String _endpoint = 'https://api.deepseek.com/chat/completions';
 
   static const String _systemPrompt = '''
 Kamu adalah sistem AI analisis fasilitas jalan untuk aplikasi SafeRuas.
-Tugasmu menganalisis laporan fasilitas umum jalan (seperti Lampu Penerangan Jalan Umum / PJU, rambu lalu lintas, traffic light, halte, marka/pembatas jalan, atau guardrail) berdasarkan data telemetri visual kamera pengguna.
+Tugasmu menganalisis laporan fasilitas umum jalan (seperti Lampu Penerangan Jalan Umum / PJU, rambu lalu lintas, traffic light, halte, marka/pembatas jalan, atau guardrail) berdasarkan foto dan data telemetri visual kamera pengguna.
 
 Balas HANYA dalam format JSON valid dengan key berikut:
 - fasilitas_umum: true/false (bernilai true jika objek/kondisi berkaitan dengan fasilitas jalan)
@@ -32,6 +33,23 @@ Balas HANYA dalam format JSON valid dengan key berikut:
 - tingkat_keparahan: "ringan" / "sedang" / "berat"
 - deskripsi: 1-2 kalimat Bahasa Indonesia yang menjelaskan kondisi fasilitas berdasarkan data visual foto
 - saran: 1 kalimat saran tindak lanjut untuk petugas terkait
+
+ATURAN TINGKAT KEPARAHAN:
+- Berat: Lampu lalu lintas (traffic light) mati, tiang roboh melintang di jalan raya, rambu peringatan tikungan tajam hilang (berisiko kecelakaan langsung).
+- Sedang: Lampu PJU mati di jalan utama, rambu arah miring/tertutup ranting pohon.
+- Ringan: Cat marka jalan mulai pudar, stiker liar di halte.
+
+CONTOH JAWABAN IDEAL:
+Input: Foto malam hari jam 20:15, kecerahan 25/255, tidak ada sumber cahaya.
+Output:
+{
+  "fasilitas_umum": true,
+  "jenis_fasilitas": "Lampu Penerangan Jalan (PJU)",
+  "kondisi": "mati",
+  "tingkat_keparahan": "sedang",
+  "deskripsi": "Ruas jalan terpantau gelap gulita pada malam hari karena lampu PJU tidak berfungsi.",
+  "saran": "Perlu perbaikan bohlam atau pengecekan gardu aliran listrik PJU oleh Dinas Perhubungan."
+}
 ''';
 
   Future<GroqAnalysisResult> analyzeImage(Uint8List imageBytes) async {
@@ -41,37 +59,29 @@ Balas HANYA dalam format JSON valid dengan key berikut:
       );
     }
 
-    // 1. Ekstrak karakteristik visual dari foto (pencahayaan, titik lampu, warna)
     final telemetry = _extractVisualTelemetry(imageBytes);
+    final base64Image = base64Encode(imageBytes);
+    final isVisionModel =
+        _model.contains('flash') ||
+        _model.contains('vision') ||
+        _model.contains('vl');
 
-    // 2. Kirim ke API DeepSeek
-    final http.Response response;
+    http.Response response;
     try {
-      response = await http
-          .post(
-            Uri.parse(_endpoint),
-            headers: {
-              'Authorization': 'Bearer $_apiKey',
-              'Content-Type': 'application/json',
-            },
-            body: jsonEncode({
-              'model': _model,
-              'temperature': 0.2,
-              'max_tokens': 1024,
-              'response_format': {'type': 'json_object'},
-              'messages': [
-                {'role': 'system', 'content': _systemPrompt},
-                {
-                  'role': 'user',
-                  'content':
-                      'Pengguna memotret kondisi fasilitas jalan melalui kamera SafeRuas.\n'
-                      'Data telemetri visual foto:\n$telemetry\n\n'
-                      'Buat analisis laporan fasilitas umum jalan dalam format JSON sesuai instruksi.',
-                },
-              ],
-            }),
-          )
-          .timeout(const Duration(seconds: 40));
+      // 1. Jika model mendukung Vision (seperti deepseek-flash), kirim gambar langsung beserta telemetri
+      if (isVisionModel) {
+        response = await _sendVisionRequest(_model, base64Image, telemetry);
+
+        // Fallback otomatis ke deepseek-chat (mode telemetri pintar) jika endpoint menolak image_url / nama model
+        if (response.statusCode == 400 ||
+            response.statusCode == 404 ||
+            response.statusCode == 422) {
+          response = await _sendTelemetryRequest('deepseek-chat', telemetry);
+        }
+      } else {
+        // 2. Mode Teks + Telemetri Visual Pintar
+        response = await _sendTelemetryRequest(_model, telemetry);
+      }
     } on Exception catch (_) {
       throw Exception(
         'Tidak bisa terhubung ke server DeepSeek AI. Cek koneksi internet.',
@@ -99,12 +109,87 @@ Balas HANYA dalam format JSON valid dengan key berikut:
     return GroqAnalysisResult.fromJson(_extractJson(content));
   }
 
-  /// Mengekstrak informasi pencahayaan, titik cahaya (lampu menyala/mati),
-  /// serta dominasi warna dari foto untuk dikirim ke DeepSeek.
+  Future<http.Response> _sendVisionRequest(
+    String model,
+    String base64Image,
+    String telemetry,
+  ) {
+    return http
+        .post(
+          Uri.parse(_endpoint),
+          headers: {
+            'Authorization': 'Bearer $_apiKey',
+            'Content-Type': 'application/json',
+          },
+          body: jsonEncode({
+            'model': model,
+            'temperature': 0.2,
+            'max_tokens': 1024,
+            'messages': [
+              {'role': 'system', 'content': _systemPrompt},
+              {
+                'role': 'user',
+                'content': [
+                  {
+                    'type': 'text',
+                    'text':
+                        'Analisis foto fasilitas jalan ini beserta data sensor pendukung berikut:\n$telemetry\n'
+                        'Balas HANYA dalam format JSON sesuai instruksi.',
+                  },
+                  {
+                    'type': 'image_url',
+                    'image_url': {
+                      'url': 'data:image/jpeg;base64,$base64Image',
+                    },
+                  },
+                ],
+              },
+            ],
+          }),
+        )
+        .timeout(const Duration(seconds: 40));
+  }
+
+  Future<http.Response> _sendTelemetryRequest(String model, String telemetry) {
+    return http
+        .post(
+          Uri.parse(_endpoint),
+          headers: {
+            'Authorization': 'Bearer $_apiKey',
+            'Content-Type': 'application/json',
+          },
+          body: jsonEncode({
+            'model': model,
+            'temperature': 0.2,
+            'max_tokens': 1024,
+            'response_format': {'type': 'json_object'},
+            'messages': [
+              {'role': 'system', 'content': _systemPrompt},
+              {
+                'role': 'user',
+                'content':
+                    'Pengguna memotret kondisi fasilitas jalan melalui kamera SafeRuas.\n'
+                    'Data telemetri visual & waktu nyata foto:\n$telemetry\n\n'
+                    'Buat analisis laporan fasilitas umum jalan dalam format JSON sesuai instruksi.',
+              },
+            ],
+          }),
+        )
+        .timeout(const Duration(seconds: 40));
+  }
+
+  /// Mengekstrak informasi waktu nyata, pencahayaan, titik cahaya (lampu menyala/mati),
+  /// serta kontras dari foto untuk dikirim ke DeepSeek.
   String _extractVisualTelemetry(Uint8List imageBytes) {
+    final now = DateTime.now();
+    final timeStr =
+        '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')} WIB';
+    final isNightTime = now.hour >= 18 || now.hour < 6;
+
     final decoded = img.decodeImage(imageBytes);
     if (decoded == null) {
-      return '- Status gambar: Foto fasilitas berhasil diambil kamera.';
+      return '- Waktu Pengambilan: $timeStr (${isNightTime ? "Malam Hari" : "Siang/Sore Hari"})\n'
+          '- Status gambar: Foto fasilitas berhasil diambil kamera.';
     }
 
     double lumSum = 0;
@@ -134,12 +219,12 @@ Balas HANYA dalam format JSON valid dengan key berikut:
     final String timeCondition;
     if (avgLum < 55) {
       timeCondition =
-          'Malam hari / Kondisi gelap (kemungkinan besar pelaporan Lampu PJU mati sehingga jalan gelap)';
+          'Gelap (kemungkinan besar pelaporan Lampu PJU mati sehingga jalan gelap)';
     } else if (avgLum < 120) {
-      timeCondition = 'Sore / Mendung / Pencahayaan sedang';
+      timeCondition = 'Redup / Mendung / Pencahayaan sedang';
     } else {
       timeCondition =
-          'Siang hari / Terang (pelaporan kerusakan fisik fasilitas seperti rambu/tiang/marka)';
+          'Terang (pelaporan kerusakan fisik fasilitas seperti rambu/tiang/marka/lampu jalan)';
     }
 
     final String lightSourceNote = brightRatio < 1.5 && avgLum < 60
@@ -147,10 +232,11 @@ Balas HANYA dalam format JSON valid dengan key berikut:
         : 'Terdeteksi titik cahaya sekitar ${brightRatio.toStringAsFixed(1)}% dari area foto.';
 
     return '''
+- Waktu Pengambilan Foto: $timeStr (${isNightTime ? 'Malam Hari' : 'Siang/Sore Hari'})
 - Resolusi Foto: ${decoded.width}x${decoded.height} piksel
 - Rata-rata Kecerahan (Luminance): ${avgLum.toStringAsFixed(1)} / 255
 - Persentase Area Gelap: ${darkRatio.toStringAsFixed(1)}%
-- Estimasi Kondisi Lingkungan: $timeCondition
+- Kondisi Pencahayaan Visual: $timeCondition
 - Analisis Sumber Cahaya: $lightSourceNote
 ''';
   }
