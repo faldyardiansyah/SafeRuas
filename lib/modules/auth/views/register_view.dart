@@ -84,7 +84,7 @@ class RegisterView extends GetView<RegisterController> {
                       Obx(
                         () => _buildTextField(
                           controller: controller.passwordController,
-                          hint: 'Minimal 8 karakter',
+                          hint: 'Minimal 6 karakter',
                           icon: Icons.lock_outline_rounded,
                           validator: controller.validatePassword,
                           obscureText: controller.isPasswordHidden.value,

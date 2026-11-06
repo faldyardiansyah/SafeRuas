@@ -3,11 +3,13 @@ import 'package:get/get.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'routes/app_pages.dart';
 import 'routes/app_routes.dart';
+import 'package:get_storage/get_storage.dart';
 
 Future<void> main() async {
 
   WidgetsFlutterBinding.ensureInitialized();
-   await dotenv.load(fileName: '.env');
+    await GetStorage.init(); 
+    await dotenv.load(fileName: '.env');
   runApp(const SafeRuasApp());
 }
 
