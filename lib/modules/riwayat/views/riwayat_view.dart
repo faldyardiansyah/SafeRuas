@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:lottie/lottie.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'package:flutter_animate/flutter_animate.dart' hide ShimmerEffect;
 import 'package:saferuas/utils/app_colors.dart';
@@ -175,47 +176,50 @@ class RiwayatView extends GetView<RiwayatController> {
   // ===== Ringkasan status =====
   Widget _buildSummaryCard() {
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
-      decoration: _cardDecoration(),
-      child: Obx(
-        () => Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+          decoration: _cardDecoration(),
+          child: Obx(
+            () => Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Total laporan',
-                  style: jakarta.copyWith(
-                    color: AppColors.slate500,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
+                Row(
+                  children: [
+                    Text(
+                      'Total laporan',
+                      style: jakarta.copyWith(
+                        color: AppColors.slate500,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      '${controller.totalReports}',
+                      style: jakarta.copyWith(
+                        color: AppColors.slate900,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
                 ),
-                const Spacer(),
-                Text(
-                  '${controller.totalReports}',
-                  style: jakarta.copyWith(
-                    color: AppColors.slate900,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
-                  ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    _summaryItem(ReportStatus.menunggu),
+                    const SizedBox(width: 8),
+                    _summaryItem(ReportStatus.diproses),
+                    const SizedBox(width: 8),
+                    _summaryItem(ReportStatus.diperbaiki),
+                  ],
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                _summaryItem(ReportStatus.menunggu),
-                const SizedBox(width: 8),
-                _summaryItem(ReportStatus.diproses),
-                const SizedBox(width: 8),
-                _summaryItem(ReportStatus.diperbaiki),
-              ],
-            ),
-          ],
-        ),
-      ),
-    ).animate().fadeIn(delay: 100.ms, duration: 500.ms).slideY(
+          ),
+        )
+        .animate()
+        .fadeIn(delay: 100.ms, duration: 500.ms)
+        .slideY(
           begin: 0.1,
           end: 0,
           delay: 100.ms,
@@ -505,18 +509,12 @@ class RiwayatView extends GetView<RiwayatController> {
       decoration: _cardDecoration(radius: 20),
       child: Column(
         children: [
-          Container(
-            width: 64,
-            height: 64,
-            decoration: const BoxDecoration(
-              color: AppColors.homeCardTint,
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.inbox_rounded,
-              size: 30,
-              color: AppColors.homeBlue,
-            ),
+          Lottie.asset(
+            'assets/lotties/Empty.json',
+            width: 90,
+            height: 90,
+            fit: BoxFit.contain,
+            repeat: true,
           ),
           const SizedBox(height: 14),
           Text(
@@ -691,12 +689,14 @@ class RiwayatView extends GetView<RiwayatController> {
                   color: item.status.tint,
                   shape: BoxShape.circle,
                 ),
-                child: Icon(item.status.icon, size: 13, color: item.status.color),
+                child: Icon(
+                  item.status.icon,
+                  size: 13,
+                  color: item.status.color,
+                ),
               ),
               if (!isLast)
-                Expanded(
-                  child: Container(width: 2, color: AppColors.slate200),
-                ),
+                Expanded(child: Container(width: 2, color: AppColors.slate200)),
             ],
           ),
           const SizedBox(width: 12),
@@ -769,5 +769,4 @@ class RiwayatView extends GetView<RiwayatController> {
       ],
     );
   }
-
 }

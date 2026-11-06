@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:lottie/lottie.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'package:flutter_animate/flutter_animate.dart' hide ShimmerEffect;
 import 'package:saferuas/utils/app_colors.dart';
@@ -58,16 +59,20 @@ class HomeView extends GetView<HomeController> {
                       onNotification: (notification) {
                         if (notification is ScrollUpdateNotification) {
                           final delta = notification.scrollDelta ?? 0;
-                          if (delta > 2 && !controller.isHeaderCollapsed.value) {
+                          if (delta > 2 &&
+                              !controller.isHeaderCollapsed.value) {
                             controller.isHeaderCollapsed.value = true;
-                          } else if (delta < -2 && controller.isHeaderCollapsed.value) {
+                          } else if (delta < -2 &&
+                              controller.isHeaderCollapsed.value) {
                             controller.isHeaderCollapsed.value = false;
                           }
                         } else if (notification is OverscrollNotification) {
                           final overscroll = notification.overscroll;
-                          if (overscroll > 2 && !controller.isHeaderCollapsed.value) {
+                          if (overscroll > 2 &&
+                              !controller.isHeaderCollapsed.value) {
                             controller.isHeaderCollapsed.value = true;
-                          } else if (overscroll < -2 && controller.isHeaderCollapsed.value) {
+                          } else if (overscroll < -2 &&
+                              controller.isHeaderCollapsed.value) {
                             controller.isHeaderCollapsed.value = false;
                           }
                         }
@@ -82,7 +87,6 @@ class HomeView extends GetView<HomeController> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Spacer dinamis: saat normal pas di bawah kartu cuaca, saat collapsed pas 16px di bawah header biru (tidak terpotong & tidak kejauhan)
                             Obx(
                               () => AnimatedContainer(
                                 duration: const Duration(milliseconds: 320),
@@ -265,8 +269,9 @@ class HomeView extends GetView<HomeController> {
               clipBehavior: Clip.antiAlias,
               decoration: const BoxDecoration(
                 gradient: AppColors.homeHeaderGradient,
-                borderRadius:
-                    BorderRadius.vertical(bottom: Radius.circular(38)),
+                borderRadius: BorderRadius.vertical(
+                  bottom: Radius.circular(38),
+                ),
                 boxShadow: [
                   BoxShadow(
                     color: Color(0x2D1F5BFF),
@@ -326,9 +331,11 @@ class HomeView extends GetView<HomeController> {
                               behavior: HitTestBehavior.translucent,
                               onVerticalDragUpdate: (details) {
                                 final delta = details.primaryDelta ?? 0;
-                                if (delta < -2 && !controller.isHeaderCollapsed.value) {
+                                if (delta < -2 &&
+                                    !controller.isHeaderCollapsed.value) {
                                   controller.isHeaderCollapsed.value = true;
-                                } else if (delta > 2 && controller.isHeaderCollapsed.value) {
+                                } else if (delta > 2 &&
+                                    controller.isHeaderCollapsed.value) {
                                   controller.isHeaderCollapsed.value = false;
                                 }
                               },
@@ -482,10 +489,7 @@ class HomeView extends GetView<HomeController> {
               decoration: BoxDecoration(
                 color: AppColors.yellowAccent,
                 shape: BoxShape.circle,
-                border: Border.all(
-                  color: AppColors.homeBlue,
-                  width: 2.5,
-                ),
+                border: Border.all(color: AppColors.homeBlue, width: 2.5),
               ),
             ),
           ),
@@ -602,45 +606,63 @@ class HomeView extends GetView<HomeController> {
                 const SizedBox(height: 10),
                 Row(
                   children: [
-                    Icon(
-                      Icons.check_circle_outline_rounded,
-                      size: 13,
-                      color: white90,
+                    Obx(
+                      () => Icon(
+                        controller.nearbyFacilityCount.value == 0
+                            ? Icons.check_circle_outline_rounded
+                            : Icons.warning_amber_rounded,
+                        size: 13,
+                        color: white90,
+                      ),
                     ),
                     const SizedBox(width: 4),
                     Expanded(
-                      child: Text(
-                        'Penerangan Jalan (PJU) Optimal',
-                        style: _jakarta(10, FontWeight.w400, white90),
+                      child: Obx(
+                        () => Text(
+                          controller.nearbyFacilityCount.value == 0
+                              ? 'Penerangan Jalan (PJU) Optimal'
+                              : '${controller.nearbyFacilityCount.value} laporan fasilitas di sekitar',
+                          style: _jakarta(10, FontWeight.w400, white90),
+                        ),
                       ),
                     ),
-                    _pill(
-                      color: AppColors.emerald500,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 4,
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(
-                            Icons.shield_outlined,
-                            size: 12,
-                            color: Colors.white,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            'Belum ada laporan',
-                            style: _jakarta(
-                              10,
-                              FontWeight.w700,
-                              Colors.white,
-                              spacing: 0.25,
+                    Obx(() {
+                      final count = controller.nearbyCount.value;
+
+                      return _pill(
+                        color: count == 0
+                            ? AppColors.emerald500
+                            : AppColors.amber500,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              count == 0
+                                  ? Icons.shield_outlined
+                                  : Icons.report_problem_outlined,
+                              size: 12,
+                              color: Colors.white,
                             ),
-                          ),
-                        ],
-                      ),
-                    ),
+                            const SizedBox(width: 4),
+                            Text(
+                              count == 0
+                                  ? 'Belum ada laporan'
+                                  : '$count laporan sekitar',
+                              style: _jakarta(
+                                10,
+                                FontWeight.w700,
+                                Colors.white,
+                                spacing: 0.25,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
                   ],
                 ),
               ],
@@ -678,21 +700,25 @@ class HomeView extends GetView<HomeController> {
           ),
         ],
       ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(
-            Icons.nights_stay_outlined,
-            color: AppColors.yellowAccent,
-            size: 34,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'KONDISI BAIK',
-            style: _jakarta(9, FontWeight.w700, Colors.white, spacing: -0.22),
-          ),
-        ],
-      ),
+      child: Obx(() {
+        final safe = controller.nearbyCount.value == 0;
+
+        return Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              safe ? Icons.nights_stay_outlined : Icons.warning_amber_rounded,
+              color: AppColors.yellowAccent,
+              size: 34,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              safe ? 'KONDISI BAIK' : 'WASPADA',
+              style: _jakarta(9, FontWeight.w700, Colors.white, spacing: -0.22),
+            ),
+          ],
+        );
+      }),
     );
   }
 
@@ -822,7 +848,7 @@ class HomeView extends GetView<HomeController> {
               borderRadius: BorderRadius.circular(12),
             ),
             child: report.image != null
-                ? Image.asset(
+                ? Image.network(
                     report.image!,
                     fit: BoxFit.cover,
                     errorBuilder: (_, _, _) => fallbackIcon,
@@ -1014,7 +1040,10 @@ class HomeView extends GetView<HomeController> {
                       : _jakarta(10, FontWeight.w400, AppColors.slate500),
                 ),
               ),
-              _buildConditionAction(item),
+              GestureDetector(
+                onTap: controller.openMap,
+                child: _buildConditionAction(item),
+              ),
             ],
           ),
         ],
@@ -1124,23 +1153,36 @@ class HomeView extends GetView<HomeController> {
     );
   }
 
-  Widget _buildEmptyState(String message) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 22, horizontal: 16),
-        decoration: BoxDecoration(
-          color: AppColors.slate100,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.slate200),
-        ),
-        child: Text(
-          message,
-          textAlign: TextAlign.center,
-          style: _jakarta(12, FontWeight.w500, AppColors.slate500),
-        ),
+Widget _buildEmptyState(String message) {
+  return Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 20),
+    child: Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+      decoration: BoxDecoration(
+        color: AppColors.slate100,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.slate200),
       ),
-    );
-  }
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Lottie.asset(
+            'assets/lotties/empty2.json',
+            width: 120,
+            height: 120,
+            fit: BoxFit.contain,
+            repeat: true, 
+          ),
+          const SizedBox(height: 12),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: _jakarta(12, FontWeight.w500, AppColors.slate500),
+          ),
+        ],
+      ),
+    ),
+  );
+}
 }
