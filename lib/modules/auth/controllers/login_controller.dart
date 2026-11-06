@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:awesome_snackbar_content/awesome_snackbar_content.dart';
+import 'package:saferuas/utils/widgets/saferuas_loading.dart';
 
 import '../../../../utils/widgets/show_awesome_snackbar.dart';
 
@@ -60,7 +61,28 @@ class LoginController extends GetxController {
 
     if (!formKey.currentState!.validate()) return;
 
-    Get.offAllNamed('/main');
+    isLoading.value = true;
+
+    SaferuasLoading.show(message: 'Menyiapkan perjalanan aman...');
+
+    try {
+      // Simulasi proses login
+      await Future.delayed(const Duration(seconds: 2));
+
+      SaferuasLoading.hide();
+
+      Get.offAllNamed('/main');
+    } catch (e) {
+      SaferuasLoading.hide();
+
+      showAwesomeSnackbar(
+        title: 'Login gagal',
+        message: 'Terjadi kesalahan saat masuk.',
+        contentType: ContentType.failure,
+      );
+    } finally {
+      isLoading.value = false;
+    }
   }
 
   // Lupa password

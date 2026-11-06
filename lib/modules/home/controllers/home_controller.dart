@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
-
+import 'package:saferuas/routes/app_routes.dart';
 import '../../../utils/app_colors.dart';
 import '../../../utils/widgets/show_awesome_snackbar.dart';
 import '../../main/controllers/main_controller.dart';
@@ -306,12 +306,27 @@ class HomeController extends GetxController {
       return;
     }
 
-    // Semua fitur cepat yang belum dibuat menampilkan notifikasi ini
-    showAwesomeSnackbar(
-      title: label,
-      message: 'Fitur $label belum tersedia.',
-      contentType: ContentType.warning,
-    );
+    if (label == 'Jalan Rusak') {
+      Get.toNamed(
+        AppRoutes.reportCamera,
+        arguments: {
+          'reportType': 'jalan_rusak',
+          'title': 'Laporan Jalan Rusak',
+        },
+      );
+      return;
+    }
+
+    if (label == 'Lapor Fasilitas') {
+      Get.toNamed(
+        AppRoutes.reportCamera,
+        arguments: {
+          'reportType': 'fasilitas',
+          'title': 'Laporan Fasilitas Umum',
+        },
+      );
+      return;
+    }
   }
 
   @override

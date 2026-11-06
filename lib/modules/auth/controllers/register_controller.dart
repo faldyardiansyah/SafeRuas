@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:awesome_snackbar_content/awesome_snackbar_content.dart';
 
 import 'package:saferuas/utils/widgets/show_awesome_snackbar.dart';
+import 'package:saferuas/utils/widgets/saferuas_loading.dart';
 import 'package:saferuas/routes/app_routes.dart';
 
 class RegisterController extends GetxController {
@@ -14,8 +15,6 @@ class RegisterController extends GetxController {
 
   final isPasswordHidden = true.obs;
   final isLoading = false.obs;
-
-  FormFieldValidator<String>? get validateNama => null;
 
   void togglePasswordVisibility() {
     isPasswordHidden.value = !isPasswordHidden.value;
@@ -52,19 +51,45 @@ class RegisterController extends GetxController {
     return null;
   }
 
-  void register() {
+  // Proses pendaftaran
+  Future<void> register() async {
     FocusManager.instance.primaryFocus?.unfocus();
+
+    if (isLoading.value) return;
 
     if (!formKey.currentState!.validate()) return;
 
-    // Hubungkan ke API pendaftaran di sini.
-    showAwesomeSnackbar(
-      title: 'Pendaftaran',
-      message: 'Data berhasil divalidasi. API pendaftaran belum dihubungkan.',
-      contentType: ContentType.warning,
+    isLoading.value = true;
+
+    SaferuasLoading.show(
+      message: 'Sedang menyiapkan akun Saferuas...',
     );
+
+    try {
+      // Simulasi proses pendaftaran
+      await Future.delayed(const Duration(seconds: 2));
+
+      SaferuasLoading.hide();
+
+      showAwesomeSnackbar(
+        title: 'Pendaftaran',
+        message: 'Data berhasil divalidasi. API pendaftaran belum dihubungkan.',
+        contentType: ContentType.warning,
+      );
+    } catch (e) {
+      SaferuasLoading.hide();
+
+      showAwesomeSnackbar(
+        title: 'Pendaftaran gagal',
+        message: 'Terjadi kesalahan. Silakan coba kembali.',
+        contentType: ContentType.failure,
+      );
+    } finally {
+      isLoading.value = false;
+    }
   }
 
+  // Kembali ke halaman login
   void goToLogin() {
     Get.offNamed(AppRoutes.login);
   }

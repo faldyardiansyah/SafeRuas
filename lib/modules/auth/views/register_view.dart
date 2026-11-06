@@ -61,7 +61,7 @@ class RegisterView extends GetView<RegisterController> {
                         controller: controller.namaController,
                         hint: 'Masukkan nama lengkap',
                         icon: Icons.person_outline_rounded,
-                        validator: controller.validateNama,
+                        validator: controller.validateName,
                         keyboardType: TextInputType.name,
                       ).animate().fadeIn(delay: 150.ms).slideX(begin: 0.08),
 
