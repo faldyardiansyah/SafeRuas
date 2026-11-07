@@ -206,6 +206,9 @@ class MapsController extends GetxController {
     if (currentLocation.value != null) {
       mapController.move(currentLocation.value!, 15);
     }
+    debugPrint('[MAPBOX] hasToken=${MapboxConfig.hasToken} '
+    'len=${MapboxConfig.token.length} '
+    'awal=${MapboxConfig.token.length > 8 ? MapboxConfig.token.substring(0, 8) : MapboxConfig.token}');
   }
 
   Future<bool> _checkLocationPermission() async {

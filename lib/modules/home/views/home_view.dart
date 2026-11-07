@@ -83,7 +83,9 @@ class HomeView extends GetView<HomeController> {
                         physics: const AlwaysScrollableScrollPhysics(
                           parent: ClampingScrollPhysics(),
                         ),
-                        padding: const EdgeInsets.only(bottom: 24),
+                        padding: EdgeInsets.only(
+                          bottom: MediaQuery.of(context).padding.bottom + 110,
+                        ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -107,7 +109,18 @@ class HomeView extends GetView<HomeController> {
                                   duration: 600.ms,
                                   curve: Curves.easeOutCubic,
                                 ),
+                            const SizedBox(height: 24),
 
+                            _buildImpact()
+                                .animate()
+                                .fadeIn(delay: 400.ms, duration: 550.ms)
+                                .slideY(
+                                  begin: 0.08,
+                                  end: 0,
+                                  delay: 400.ms,
+                                  duration: 600.ms,
+                                  curve: Curves.easeOutCubic,
+                                ),
                             const SizedBox(height: 24),
 
                             _buildRecentReports()
@@ -130,19 +143,6 @@ class HomeView extends GetView<HomeController> {
                                   begin: 0.08,
                                   end: 0,
                                   delay: 300.ms,
-                                  duration: 600.ms,
-                                  curve: Curves.easeOutCubic,
-                                ),
-
-                            const SizedBox(height: 24),
-
-                            _buildImpact()
-                                .animate()
-                                .fadeIn(delay: 400.ms, duration: 550.ms)
-                                .slideY(
-                                  begin: 0.08,
-                                  end: 0,
-                                  delay: 400.ms,
                                   duration: 600.ms,
                                   curve: Curves.easeOutCubic,
                                 ),
@@ -1153,36 +1153,36 @@ class HomeView extends GetView<HomeController> {
     );
   }
 
-Widget _buildEmptyState(String message) {
-  return Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 20),
-    child: Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-      decoration: BoxDecoration(
-        color: AppColors.slate100,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.slate200),
+  Widget _buildEmptyState(String message) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+        decoration: BoxDecoration(
+          color: AppColors.slate100,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.slate200),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Lottie.asset(
+              'assets/lotties/empty2.json',
+              width: 120,
+              height: 120,
+              fit: BoxFit.contain,
+              repeat: true,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: _jakarta(12, FontWeight.w500, AppColors.slate500),
+            ),
+          ],
+        ),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Lottie.asset(
-            'assets/lotties/empty2.json',
-            width: 120,
-            height: 120,
-            fit: BoxFit.contain,
-            repeat: true, 
-          ),
-          const SizedBox(height: 12),
-          Text(
-            message,
-            textAlign: TextAlign.center,
-            style: _jakarta(12, FontWeight.w500, AppColors.slate500),
-          ),
-        ],
-      ),
-    ),
-  );
-}
+    );
+  }
 }

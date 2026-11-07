@@ -13,10 +13,21 @@ class LoginController extends GetxController {
   final passwordController = TextEditingController();
 
   final formKey = GlobalKey<FormState>();
+  final _box = GetStorage();
 
   final isPasswordHidden = true.obs;
   final rememberMe = true.obs;
   final isLoading = false.obs;
+
+  @override
+  void onInit() {
+    super.onInit();
+    rememberMe.value = _box.read('remember_me') ?? true;
+
+    if (rememberMe.value) {
+      emailController.text = _box.read('remember_email') ?? '';
+    }
+  }
 
   void togglePasswordVisibility() {
     isPasswordHidden.value = !isPasswordHidden.value;
@@ -52,6 +63,16 @@ class LoginController extends GetxController {
     if (isLoading.value) return;
     if (!formKey.currentState!.validate()) return;
 
+    // Wajib centang "Ingat saya"
+    if (!rememberMe.value) {
+      showAwesomeSnackbar(
+        title: 'Centang dulu ya',
+        message: 'Aktifkan "Ingat saya" untuk masuk.',
+        contentType: ContentType.warning,
+      );
+      return;
+    }
+
     isLoading.value = true;
     SaferuasLoading.show(message: 'Menyiapkan perjalanan aman...');
 
@@ -68,16 +89,16 @@ class LoginController extends GetxController {
 
       // Simpan sesi. Kalau gagal, jangan batalkan login.
       try {
-        final box = GetStorage();
-        await box.write('token', response.data['token']);
-        await box.write('user', response.data['user']);
-        debugPrint('[LOGIN] token tersimpan');
+        await _box.write('token', response.data['token']);
+        await _box.write('user', response.data['user']);
+        await _box.write('remember_me', true);
+        await _box.write('remember_email', emailController.text.trim());
+        debugPrint('[LOGIN] sesi tersimpan');
       } catch (e) {
         debugPrint('[LOGIN] gagal simpan sesi: $e');
       }
 
       SaferuasLoading.hide();
-      debugPrint('[LOGIN] pindah ke /main');
       Get.offAllNamed('/main');
     } on DioException catch (e) {
       debugPrint(

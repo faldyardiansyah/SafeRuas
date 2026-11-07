@@ -120,31 +120,46 @@ class LoginView extends GetView<LoginController> {
                       // Ingat akun dan lupa kata sandi
                       Row(
                         children: [
-                          Obx(
-                            () => SizedBox(
-                              width: 22,
-                              height: 22,
-                              child: Checkbox(
-                                value: controller.rememberMe.value,
-                                onChanged: controller.toggleRememberMe,
-                                activeColor: primary,
-                                side: const BorderSide(
-                                  color: AppColors.divider,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(5),
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 6),
                           Expanded(
-                            child: Text(
-                              'Ingat saya',
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.textSecondary,
+                            child: GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTap: () => controller.toggleRememberMe(
+                                !controller.rememberMe.value,
+                              ),
+                              child: Row(
+                                children: [
+                                  Obx(
+                                    () => SizedBox(
+                                      width: 22,
+                                      height: 22,
+                                      child: Checkbox(
+                                        value: controller.rememberMe.value,
+                                        onChanged: controller.toggleRememberMe,
+                                        activeColor: primary,
+                                        checkColor: Colors.white,
+                                        materialTapTargetSize:
+                                            MaterialTapTargetSize.shrinkWrap,
+                                        side: const BorderSide(
+                                          color: AppColors.divider,
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            5,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'Ingat saya',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.textSecondary,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ),
@@ -244,7 +259,10 @@ class LoginView extends GetView<LoginController> {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Image.asset('assets/images/google.png', width: 18),
+                              Image.asset(
+                                'assets/images/google.png',
+                                width: 18,
+                              ),
                               const SizedBox(width: 6),
                               Text(
                                 'Google',
@@ -299,112 +317,102 @@ class LoginView extends GetView<LoginController> {
   }
 
   Widget _buildHeader() {
-  return Container(
-    height: 200,
-    width: double.infinity,
-    margin: EdgeInsets.zero,
-    clipBehavior: Clip.hardEdge,
-    decoration: const BoxDecoration(
-      gradient: AppColors.primaryGradient,
-      borderRadius: BorderRadius.only(
-        bottomLeft: Radius.circular(32),
-        bottomRight: Radius.circular(32),
-      ),
-    ),
-    child: Stack(
-      children: [
-        Positioned(
-          right: -40,
-          top: -20,
-          child:  MegaMendung(
-            width: 230,
-            color: Color(0x26FFFFFF), 
-          ).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.8, 0.8), end: const Offset(1, 1)),
-        ),
-        Positioned(
-          left: -40,
-          bottom: -30,
-          child:  MegaMendung(
-            width: 230,
-            flip: true,
-            color: Color(0x1AFFFFFF), 
-          ).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.8, 0.8), end: const Offset(1, 1)),
-        ),
-
-        Positioned(
-          left : -40,
-          top: -20,
-          child:  MegaMendung(
-            width: 210,
-            color: Color(0x1AFFFFFF), 
-          ).animate().fadeIn(delay: 400.ms, duration: 600.ms),
-        ),
-
-        // Nama dan slogan Saferuas
-        Positioned(
-          top: 25,
-          left: 22,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 10),
-              Text(
-                    'Saferuas.',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 25,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.textWhite, 
-                      letterSpacing: -1,
-                    ),
-                  )
-                  .animate()
-                  .fadeIn(duration: 450.ms)
-                  .slideX(begin: -0.1, end: 0),
-
-              const SizedBox(height: 7),
-
-              Text(
-                'Perjalanan nyaman,\nlebih aman bersama kami.',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 12,
-                  height: 1.5,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.textWhite.withValues(alpha: 0.9), 
-                ),
-              ).animate().fadeIn(delay: 100.ms),
-            ],
-          ),
-        ),
-
-        // Animasi pengendara motor di kanan bawah
-        Positioned(
-          right: 5,
-          bottom: 0,
-          child: SizedBox(
-            width: 185,
-            height: 165,
-            child: Lottie.asset(
-              'assets/lotties/ride.json',
-              fit: BoxFit.contain,
-              alignment: Alignment.centerRight,
-              repeat: true,
-            ),
-          ).animate().fadeIn(delay: 150.ms).slideX(begin: 0.15, end: 0),
-        ),
-      ],
-    ),
-  );
-}
-
-  // Lingkaran hiasan
-  Widget _circle(double size, Color color) {
     return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+      height: 200,
+      width: double.infinity,
+      margin: EdgeInsets.zero,
+      clipBehavior: Clip.hardEdge,
+      decoration: const BoxDecoration(
+        gradient: AppColors.primaryGradient,
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(32),
+          bottomRight: Radius.circular(32),
+        ),
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            right: -40,
+            top: -20,
+            child: MegaMendung(width: 230, color: Color(0x26FFFFFF))
+                .animate()
+                .fadeIn(duration: 600.ms)
+                .scale(begin: const Offset(0.8, 0.8), end: const Offset(1, 1)),
+          ),
+          Positioned(
+            left: -40,
+            bottom: -30,
+            child: MegaMendung(width: 230, flip: true, color: Color(0x1AFFFFFF))
+                .animate()
+                .fadeIn(duration: 600.ms)
+                .scale(begin: const Offset(0.8, 0.8), end: const Offset(1, 1)),
+          ),
+
+          Positioned(
+            left: -40,
+            top: -20,
+            child: MegaMendung(
+              width: 210,
+              color: Color(0x1AFFFFFF),
+            ).animate().fadeIn(delay: 400.ms, duration: 600.ms),
+          ),
+
+          // Nama dan slogan Saferuas
+          Positioned(
+            top: 25,
+            left: 22,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 10),
+                Text(
+                      'Saferuas.',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 25,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textWhite,
+                        letterSpacing: -1,
+                      ),
+                    )
+                    .animate()
+                    .fadeIn(duration: 450.ms)
+                    .slideX(begin: -0.1, end: 0),
+
+                const SizedBox(height: 7),
+
+                Text(
+                  'Perjalanan nyaman,\nlebih aman bersama kami.',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 12,
+                    height: 1.5,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textWhite.withValues(alpha: 0.9),
+                  ),
+                ).animate().fadeIn(delay: 100.ms),
+              ],
+            ),
+          ),
+
+          // Animasi pengendara motor di kanan bawah
+          Positioned(
+            right: 5,
+            bottom: 0,
+            child: SizedBox(
+              width: 185,
+              height: 165,
+              child: Lottie.asset(
+                'assets/lotties/ride.json',
+                fit: BoxFit.contain,
+                alignment: Alignment.centerRight,
+                repeat: true,
+              ),
+            ).animate().fadeIn(delay: 150.ms).slideX(begin: 0.15, end: 0),
+          ),
+        ],
+      ),
     );
   }
-
+  
   // Label input
   Widget _buildLabel(String label) {
     return Text(
